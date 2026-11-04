@@ -1,21 +1,26 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nifty Live</title><style>html,body{margin:0;height:100%;background:#0b0f14;color:#ddd;font-family:system-ui}
-#f{position:fixed;inset:0;width:100%;height:100%;border:0;display:none}#m{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:18px}</style></head>
-<body><div id="m">Loading…</div><iframe id="f" allow="fullscreen"></iframe><script>
+#f{position:fixed;inset:0;width:100%;height:100%;border:0;display:none}#m{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:18px}
+#b{position:fixed;top:0;left:0;right:0;background:#7a5b00;color:#fff;font-size:12px;text-align:center;padding:3px;display:none;z-index:9}</style></head>
+<body><div id="b">Connection slow… dobara jod rahe hain</div><div id="m">Loading…</div><iframe id="f" allow="fullscreen"></iframe><script>
 const q=new URLSearchParams(location.search),k=q.get('k')||'',go=q.get('go');q.delete('go');
-const f=document.getElementById('f'),m=document.getElementById('m');let cur=null;
+const f=document.getElementById('f'),m=document.getElementById('m'),b=document.getElementById('b');let cur=null,fails=0,busy=false;
 const API='https://api.github.com/repos/Shiv0626/nifty-live/contents/host.json';
 function to(u,ms,o){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({signal:c.signal,cache:'no-store'},o||{})).finally(()=>clearTimeout(t));}
-async function hosts(){const l=[];try{const j=await (await to('host.json?t='+Date.now(),5000)).json();l.push(j.host)}catch(e){}
-try{const j=await (await to(API+'?t='+Date.now(),5000,{headers:{Accept:'application/vnd.github.raw'}})).json();if(!l.includes(j.host))l.push(j.host)}catch(e){}return l;}
-async function alive(h){try{const r=await to(h+'/api/ltp?k='+encodeURIComponent(k),5000);return r.ok}catch(e){return false}}
+async function alive(h,n){for(let i=0;i<(n||1);i++){try{const r=await to(h+'/api/ltp?k='+encodeURIComponent(k),10000);if(r.ok)return true}catch(e){}}return false}
 function target(h){return h+(go==='chart'?'/':'/dash')+(q.toString()?'?'+q:'')}
-let apiTried=false;
-async function cycle(){if(cur&&await alive(cur))return;
- let l=[];try{const j=await (await to('host.json?t='+Date.now(),5000)).json();l.push(j.host)}catch(e){}
- for(const h of l){if(await alive(h)){show(h);return}}
- try{const j=await (await to(API+'?t='+Date.now(),5000,{headers:{Accept:'application/vnd.github.raw'}})).json();if(await alive(j.host)){show(j.host);return}}catch(e){}
- f.style.display='none';m.style.display='flex';m.textContent='Reconnecting… server se connection toot gaya, 5 sec mein dobara try kar rahe hain 🔄';}
-function show(h){if(h!==cur||f.style.display==='none'){cur=h;f.src=target(h);}f.style.display='block';m.style.display='none';}
-if(!k)m.textContent='Link mein ?k=... token missing hai';else{cycle();setInterval(cycle,5000);}
+async function pagesHost(){try{return (await (await to('host.json?t='+Date.now(),6000)).json()).host}catch(e){return null}}
+async function apiHost(){try{return (await (await to(API+'?t='+Date.now(),6000,{headers:{Accept:'application/vnd.github.raw'}})).json()).host}catch(e){return null}}
+async function cycle(){if(busy)return;busy=true;try{
+ if(cur&&await alive(cur,2)){fails=0;b.style.display='none';return}
+ const cands=[];const p=await pagesHost();if(p)cands.push(p);
+ if(!cur||fails>=2){const a=await apiHost();if(a&&!cands.includes(a))cands.push(a);}
+ for(const h of cands){if(h!==cur&&await alive(h,2)){show(h);return}}
+ fails++;
+ if(cur&&fails<4){b.style.display='block';return}
+ if(cur&&await alive(cur,1)){fails=0;b.style.display='none';return}
+ f.style.display=cur?'block':'none';if(!cur){m.style.display='flex';m.textContent='Reconnecting… server se connection toot gaya, dobara try kar rahe hain 🔄';}else b.style.display='block';
+}finally{busy=false}}
+function show(h){fails=0;b.style.display='none';if(h!==cur){cur=h;f.src=target(h);}f.style.display='block';m.style.display='none';}
+if(!k)m.textContent='Link mein ?k=... token missing hai';else{cycle();setInterval(cycle,10000);}
 </script></body></html>
