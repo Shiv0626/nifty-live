@@ -1,119 +1,35 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nifty Live</title><style>
-html,body{margin:0;height:100%;background:#0b0f14;color:#ddd;font-family:system-ui,-apple-system,sans-serif}
-#f{position:fixed;inset:0;width:100%;height:100%;border:0;display:none}
-#m{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:18px;line-height:1.4}
-#b{position:fixed;top:0;left:0;right:0;background:#7a5b00;color:#fff;font-size:12px;text-align:center;padding:3px 8px;display:none;z-index:9}
-</style></head>
-<body>
-<div id="b">Connection slow… dusre host pe switch kar rahe hain</div>
-<div id="m">Loading…</div>
-<iframe id="f" allow="fullscreen"></iframe>
-<script>
-const q=new URLSearchParams(location.search), k=q.get('k')||'', go=q.get('go');
-q.delete('go');
-const f=document.getElementById('f'), m=document.getElementById('m'), b=document.getElementById('b');
-let cur=null, fails=0, busy=false, hosts=[], lastFetch=0, apiFetches=0;
+<title>Nifty Live</title><style>html,body{margin:0;height:100%;background:#0b0f14;color:#ddd;font-family:system-ui}
+#f{position:fixed;inset:0;width:100%;height:100%;border:0;display:none}#m{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:18px}</style></head>
+<body><div id="m">Loading…</div><iframe id="f" allow="fullscreen"></iframe><script>
+const q=new URLSearchParams(location.search),k=q.get('k')||'',go=q.get('go');q.delete('go');
+const f=document.getElementById('f'),m=document.getElementById('m');let cur=null;
 const API='https://api.github.com/repos/Shiv0626/nifty-live/contents/host.json';
-const PAGE='host.json';
-
-function to(u,ms,o){
-  const c=new AbortController();
-  const t=setTimeout(()=>c.abort(),ms);
-  return fetch(u,Object.assign({signal:c.signal,cache:'no-store'},o||{})).finally(()=>clearTimeout(t));
+function to(u,ms,o){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({signal:c.signal,cache:'no-store'},o||{})).finally(()=>clearTimeout(t));}
+function collect(j,l){
+  if(!j)return l;
+  const add=u=>{if(typeof u==='string'&&u.startsWith('https://')&&!l.includes(u))l.push(u)};
+  add(j.host);
+  if(Array.isArray(j.hosts))j.hosts.forEach(add);
+  return l;
 }
-async function alive(h){
-  if(!h||!k) return false;
-  try{
-    const r=await to(h+'/api/ltp?k='+encodeURIComponent(k),7000);
-    return !!r && r.ok;
-  }catch(e){ return false; }
+async function loadHosts(){
+  const l=[];
+  try{collect(await (await to('host.json?t='+Date.now(),5000)).json(),l)}catch(e){}
+  try{collect(await (await to(API+'?t='+Date.now(),5000,{headers:{Accept:'application/vnd.github.raw'}})).json(),l)}catch(e){}
+  return l;
 }
-function target(h){
-  return h+(go==='chart'?'/':'/dash')+(q.toString()?'?'+q:'');
+async function alive(h){try{const r=await to(h+'/api/ltp?k='+encodeURIComponent(k),5000);return r.ok}catch(e){return false}}
+function target(h){return h+(go==='chart'?'/':'/dash')+(q.toString()?'?'+q:'')}
+async function cycle(){
+  if(cur&&await alive(cur))return;
+  const l=await loadHosts();
+  // Prefer current host first if listed, else try all
+  const ordered=cur&&l.includes(cur)?[cur,...l.filter(x=>x!==cur)]:l;
+  for(const h of ordered){if(await alive(h)){show(h);return}}
+  f.style.display='none';m.style.display='flex';
+  m.textContent='Reconnecting… server se connection toot gaya, 5 sec mein dobara try kar rahe hain 🔄';
 }
-function uniq(arr){
-  const s=new Set(), out=[];
-  for(const x of arr){ if(x && !s.has(x)){ s.add(x); out.push(x); } }
-  return out;
-}
-function parseDoc(j){
-  if(!j) return [];
-  const list=[];
-  if(Array.isArray(j.hosts)) list.push(...j.hosts);
-  if(j.host) list.push(j.host);
-  return uniq(list.map(h=>String(h||'').replace(/\/$/,'').split('?')[0]).filter(h=>/^https:\/\//.test(h)));
-}
-async function pagesHosts(){
-  try{ return parseDoc(await (await to(PAGE+'?t='+Date.now(),6000)).json()); }
-  catch(e){ return []; }
-}
-async function apiHosts(){
-  // GitHub raw API: ~60 unauth req/h/IP — use sparingly
-  if(apiFetches>40) return [];
-  try{
-    apiFetches++;
-    return parseDoc(await (await to(API+'?t='+Date.now(),6000,{headers:{Accept:'application/vnd.github.raw'}})).json());
-  }catch(e){ return []; }
-}
-async function refreshHosts(forceApi){
-  const now=Date.now();
-  if(!forceApi && now-lastFetch<8000 && hosts.length) return hosts;
-  let list=await pagesHosts();
-  if(forceApi || !list.length){
-    const a=await apiHosts();
-    list=uniq(list.concat(a));
-  }
-  if(list.length){ hosts=list; lastFetch=now; }
-  return hosts;
-}
-async function pickHealthy(prefer){
-  const list=uniq([prefer,...hosts].filter(Boolean));
-  const checks=await Promise.all(list.map(async h=>({h, ok:await alive(h)})));
-  const hit=checks.find(x=>x.ok);
-  return hit? hit.h : null;
-}
-function show(h){
-  fails=0; b.style.display='none';
-  if(h!==cur){ cur=h; f.src=target(h); }
-  f.style.display='block'; m.style.display='none';
-}
-async function tick(){
-  if(busy||!k) return;
-  busy=true;
-  try{
-    await refreshHosts(false);
-    if(cur){
-      if(await alive(cur)){ fails=0; b.style.display='none'; return; }
-      fails++;
-      b.style.display='block';
-      if(fails<2) return; // ~10s with 5s interval
-    }
-    // Need a new host: probe all in parallel; refresh from API if nothing works
-    let next=await pickHealthy(null);
-    if(!next){
-      await refreshHosts(true);
-      next=await pickHealthy(null);
-    }
-    if(next){ show(next); return; }
-    // nothing works
-    if(cur){ b.style.display='block'; }
-    else {
-      f.style.display='none'; m.style.display='flex';
-      m.textContent='Reconnecting… koi host respond nahi kar raha, dobara try kar rahe hain 🔄';
-    }
-  } finally { busy=false; }
-}
-if(!k){
-  m.textContent='Link mein ?k=... token missing hai';
-} else {
-  (async()=>{
-    await refreshHosts(true);
-    const first=await pickHealthy(hosts[0]||null);
-    if(first) show(first);
-    else { m.textContent='Reconnecting… server se connection toot gaya, dobara try kar rahe hain 🔄'; }
-    setInterval(tick,5000);
-  })();
-}
-</script>
-</body></html>
+function show(h){if(h!==cur||f.style.display==='none'){cur=h;f.src=target(h);}f.style.display='block';m.style.display='none';}
+if(!k)m.textContent='Link mein ?k=... token missing hai';else{cycle();setInterval(cycle,5000);}
+</script></body></html>
