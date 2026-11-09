@@ -1,0 +1,120 @@
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nifty Live</title><style>
+html,body{margin:0;min-height:100%;background:#0b0f14;color:#dde3ea;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#f{position:fixed;inset:0;width:100%;height:100%;border:0;display:none}
+#m{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:18px}
+#fb{display:none;max-width:860px;margin:0 auto;padding:10px 12px 40px}
+.ban{background:#3a2a06;border:1px solid #d9a21b;color:#ffd77a;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45}
+.ban b{color:#fff}.ban.old{background:#3a0f12;border-color:#e0545e;color:#ffb3b8}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.pill{flex:1 1 120px;background:#121a24;border:1px solid #223042;border-radius:10px;padding:8px 10px}
+.pill .k{font-size:11px;color:#8aa0b6;letter-spacing:.5px}.pill .v{font-size:18px;font-weight:700;margin-top:2px}
+.up{color:#3ddc84}.dn{color:#ff6b6b}.mut{color:#8aa0b6}
+h2{font-size:14px;color:#8aa0b6;letter-spacing:1px;margin:18px 0 8px;text-transform:uppercase}
+.card{background:#121a24;border:1px solid #223042;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.card.watch{border-style:dashed;border-color:#d9a21b}.card.done{opacity:.85}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sym{font-size:17px;font-weight:700}.badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid currentColor;margin-left:6px}
+.g-ap{color:#3ddc84}.g-a{color:#7cc4ff}.g-w{color:#ffcc55}.g-c{color:#b9a7ff}
+.lv{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:4px 10px;margin-top:8px;font-size:13px}
+.lv span{color:#8aa0b6;font-size:11px;display:block}
+.note{font-size:12px;color:#9fb0c2;margin-top:6px;line-height:1.4;word-break:break-word}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 4px;border-bottom:1px solid #1d2935;text-align:left}th{color:#8aa0b6;font-weight:600;font-size:11px}
+.news{font-size:13px;line-height:1.45}.news .t{color:#8aa0b6;font-size:11px}
+.foot{font-size:11px;color:#6b7f93;margin-top:18px}
+</style></head>
+<body><div id="m">Loading…</div><iframe id="f" allow="fullscreen"></iframe><div id="fb"></div><script>
+const q=new URLSearchParams(location.search),k=q.get('k')||'',go=q.get('go'),FORCE=q.get('forceFallback')==='1';
+q.delete('go');q.delete('forceFallback');
+const f=document.getElementById('f'),m=document.getElementById('m'),fb=document.getElementById('fb');
+let cur=null,mode='init',snap=null,snapHosts=[],lastApi=0,deadSince=0;
+const REPO='Shiv0626/nifty-live',API='https://api.github.com/repos/'+REPO,RAW='https://raw.githubusercontent.com/'+REPO+'/';
+function to(u,ms,o){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({signal:c.signal,cache:'no-store'},o||{})).finally(()=>clearTimeout(t));}
+async function getJ(u,ms,o){const r=await to(u,ms,o);if(!r.ok)throw new Error(r.status);return r.json();}
+function collect(j,l){if(!j)return l;const add=u=>{if(typeof u==='string'&&u.startsWith('https://')&&!l.includes(u))l.push(u)};add(j.host);if(Array.isArray(j.hosts))j.hosts.forEach(add);return l;}
+async function loadHosts(useApi){
+  const l=[];
+  const jobs=[getJ('host.json?t='+Date.now(),5000).then(j=>collect(j,l)).catch(()=>{})];
+  if(useApi)jobs.push(getJ(API+'/contents/host.json?t='+Date.now(),5000,{headers:{Accept:'application/vnd.github.raw'}}).then(j=>collect(j,l)).catch(()=>{}));
+  await Promise.all(jobs);
+  snapHosts.forEach(h=>{if(!l.includes(h))l.push(h)});
+  return l;
+}
+async function alive(h){try{const r=await to(h+'/api/ltp?k='+encodeURIComponent(k),4500);return r.ok}catch(e){return false}}
+async function firstAlive(list){if(!list.length)return null;
+  return new Promise(res=>{let n=list.length;list.forEach(h=>alive(h).then(ok=>{if(ok)res(h);else if(--n===0)res(null)}))});}
+function target(h){return h+(go==='chart'?'/':'/dash')+(q.toString()?'?'+q:'')}
+function show(h){if(h!==cur||f.style.display==='none'){cur=h;f.src=target(h);}mode='live';deadSince=0;f.style.display='block';m.style.display='none';fb.style.display='none';}
+async function cycle(){
+  if(FORCE){toFallback();return}
+  if(mode==='live'&&cur&&await alive(cur))return;
+  const useApi=mode==='init'||Date.now()-lastApi>180000; if(useApi)lastApi=Date.now();
+  const l=await loadHosts(useApi);
+  const ordered=cur&&l.includes(cur)?[cur,...l.filter(x=>x!==cur)]:l;
+  const h=await firstAlive(ordered);
+  if(h){show(h);return}
+  toFallback();
+}
+// ---------- GitHub snapshot (branch 'data') ----------
+async function snapViaApi(){const b=await getJ(API+'/branches/data?t='+Date.now(),6000);return getJ(RAW+b.commit.sha+'/snapshot.json',8000);}
+async function probe(from,to_){const tries=[];for(let b=to_;b>=from&&tries.length<15;b--)tries.push(getJ(RAW+'data/snap-'+b+'.json',6000).catch(()=>null));
+  const r=(await Promise.all(tries)).filter(Boolean);r.sort((a,b)=>(b.bucket||0)-(a.bucket||0));return r[0]||null;}
+let lastSnapTry=0,lastApiSnap=0;
+async function loadSnap(force){
+  if(!force&&Date.now()-lastSnapTry<55000)return;lastSnapTry=Date.now();
+  const nowB=Math.floor(Date.now()/60000);let s=null;
+  if(snap&&snap.bucket){s=await probe(snap.bucket+1,nowB-1);}
+  if(!s&&(!snap||(Date.now()-lastApiSnap>300000&&ageMin(snap)>3))){lastApiSnap=Date.now();try{s=await snapViaApi()}catch(e){}}
+  if(!s&&!snap){s=await probe(nowB-15,nowB-1);if(!s){try{s=await getJ(RAW+'data/snapshot.json?t='+Date.now(),8000)}catch(e){}}}
+  if(s&&(!snap||(s.bucket||0)>=(snap.bucket||0))){snap=s;snapHosts=(s.hosts||[]).filter(h=>typeof h==='string'&&h.startsWith('https://'));}
+}
+function ageMin(s){if(!s||!s.updated)return 999;return Math.max(0,Math.round((Date.now()-Date.parse(s.updated))/60000));}
+async function toFallback(){
+  if(mode!=='fallback'){mode='fallback';deadSince=deadSince||Date.now();f.style.display='none';f.src='about:blank';cur=null;}
+  if(!snap)m.textContent='Live link abhi band hai, GitHub copy la rahe hain…';
+  await loadSnap(!snap);
+  if(mode!=='fallback')return;
+  if(!snap){m.style.display='flex';m.textContent='Live link abhi band hai aur GitHub copy bhi abhi nahi mili. 20 sec mein dobara try kar rahe hain 🔄';return}
+  render();
+}
+// ---------- render ----------
+const E=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=(x,d)=>x==null||x===''?'—':Number(x).toLocaleString('en-IN',{maximumFractionDigits:d==null?2:d});
+const RS=x=>x==null?'—':(x<0?'−':'+')+'₹'+Math.abs(Math.round(x)).toLocaleString('en-IN');
+const RR=x=>x==null?'—':(x<0?'−':'+')+Math.abs(Number(x)).toFixed(2)+'R';
+const cls=x=>x>0?'up':x<0?'dn':'';
+function ist(iso){try{return new Date(iso).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',hour12:false})+' IST'}catch(e){return iso||'—'}}
+function isWatch(s){const st=(s.status||'').toUpperCase();return st==='WATCH'||st==='TRIGGERED_LOWR'}
+function rank(s){const g=(s.grade||'').toUpperCase(),w=isWatch(s);return g==='A+'&&!w?0:g==='A'&&!w?1:2}
+function idx(name,o){o=o||{};return `<div class="pill"><div class="k">${name}</div><div class="v">${N(o.ltp)} <small class="${cls(o.chg)}" style="font-size:12px">${o.chg==null?'':(o.chg>0?'+':'')+N(o.chg)+' ('+(o.pct>0?'+':'')+N(o.pct)+'%)'}</small></div></div>`}
+function setupCard(s){
+  const w=isWatch(s),c=s.closed,g=(s.grade||'').toUpperCase();
+  let badge=w?`<span class="badge g-w">WATCH · ${E(g||'A')}</span>`:`<span class="badge ${g==='A+'?'g-ap':'g-a'}">${E(g)}${c?'':' · '+E(s.status||'')}</span>`;
+  if(c)badge+=`<span class="badge g-c">CLOSED ${E(c.reason||'')} ${RS(c.pnl)} (${RR(c.r)})</span>`;
+  const sq=s.q||{},op=s.option;
+  return `<div class="card${w?' watch':''}${c?' done':''}"><div class="hd"><div><span class="sym">${E(s.symbol)}</span> <span class="${s.side==='LONG'?'up':'dn'}" style="font-weight:700">${E(s.side||'')}</span>${badge}</div><div class="mut" style="font-size:12px">${E(s.time||'')} · LTP <b style="color:#fff">${N(sq.ltp)}</b></div></div>
+  <div class="lv"><div><span>ENTRY</span>${N(s.entry)}</div><div><span>SL</span>${N(s.sl)}</div><div><span>T1</span>${N(s.t1)}${s.t1R!=null?' <small class="mut">'+N(s.t1R)+'R</small>':''}</div><div><span>T2</span>${N(s.t2)}${s.t2R!=null?' <small class="mut">'+N(s.t2R)+'R</small>':''}</div></div>
+  ${op?`<div class="note">Option: <b>${E(op.contract)}</b> · entry ${N(op.entry)} / SL ${N(op.sl)} / T1 ${N(op.t1)} / T2 ${N(op.t2)} · lot ${E(op.lot)}</div>`:''}
+  ${s.note?`<div class="note">${E(s.note)}</div>`:''}</div>`;
+}
+function tradeRow(t){return `<tr><td>${E(t.time||'')}</td><td><b>${E(t.symbol)}</b> <span class="${t.side==='LONG'?'up':'dn'}">${E(t.side||'')}</span><br><small class="mut">${E(t.grade||'')} · ${E(t.lots||'')} lot${t.contract?' · '+E(t.contract):''}</small></td><td>${N(t.fill)} → ${t.exit!=null?N(t.exit):'<i class="mut">open</i>'}<br><small class="mut">${E(t.reason||t.status||'')}</small></td><td class="${cls(t.pnl)}"><b>${RS(t.pnl)}</b><br><small>${RR(t.r)}</small></td></tr>`}
+function render(){
+  const s=snap,a=ageMin(s),p=s.paper||{},d=p.day||{},tot=p.total||{};
+  const setups=(s.setups||[]).slice().sort((x,y)=>rank(x)-rank(y)||String(y.time||'').localeCompare(String(x.time||'')));
+  const trades=[...(p.open||[]),...(p.pending||[]),...(p.today||[])];
+  const cnt=(s.counters||[]).map(c=>`<div class="pill"><div class="k">${E(c.k)}</div><div class="v">${E(c.v)}</div></div>`).join('');
+  fb.innerHTML=`<div class="ban${a>10?' old':''}">⚠️ <b>Live link abhi band hai, GitHub copy dikha rahe hain (${a<1?'1 min se kam':a+' min'} purani).</b> Live link wapas aate hi apne aap khul jayega.<br><small>Last update: ${ist(s.updated)} · har 20 sec live link check ho raha hai${FORCE?' · TEST MODE (forceFallback)':''}</small></div>
+  <div class="row">${idx('NIFTY',(s.idx||{}).NIFTY)}${idx('INDIA VIX',(s.idx||{}).INDIAVIX)}</div>
+  <div class="row">${cnt}<div class="pill"><div class="k">DEMO P&L AAJ</div><div class="v ${cls(d.pnl)}">${RS(d.pnl)} <small style="font-size:12px">${RR(d.r)}</small></div></div><div class="pill"><div class="k">DEMO TOTAL</div><div class="v ${cls(tot.pnl)}">${RS(tot.pnl)} <small style="font-size:12px">${RR(tot.r)}</small></div></div></div>
+  <h2>Setups (${setups.length})</h2>${setups.length?setups.map(setupCard).join(''):'<div class="card mut">Abhi koi A/A+ ya near-A WATCH setup nahi hai.</div>'}
+  <h2>Demo trades aaj (${trades.length})</h2>${trades.length?`<div class="card" style="padding:4px 8px"><table><tr><th>Time</th><th>Trade</th><th>Fill → Exit</th><th>P&L</th></tr>${trades.map(tradeRow).join('')}</table></div>`:'<div class="card mut">Aaj abhi tak koi demo trade nahi.</div>'}
+  ${(s.news||[]).length?`<h2>News</h2>`+s.news.map(n=>`<div class="card news"><div class="t">${E(n.time||'')} · ${E(n.tag||'')}</div><b>${E(n.hi||'')}</b><div class="mut">${E(n.impact||'')}</div></div>`).join(''):''}
+  <div class="foot">Prices ${s.src&&s.src.ltp?ist(s.src.ltp):'—'} tak · GitHub copy har ~1 min update hoti hai · paper/demo only</div>`;
+  m.style.display='none';fb.style.display='block';
+}
+if(!k)m.textContent='Link mein ?k=... token missing hai';
+else{cycle();setInterval(()=>{if(mode==='fallback')return;cycle()},5000);
+  setInterval(()=>{if(mode==='fallback'){cycle()}},20000);
+  setInterval(()=>{if(mode==='fallback'){loadSnap().then(()=>{if(mode==='fallback'&&snap)render()})}},60000);
+  setInterval(()=>{if(mode==='fallback'&&snap)render()},30000);}
+</script></body></html>

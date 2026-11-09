@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b0e11"/>
+<title>NSE Live Chart</title>
+<style>
+  :root {
+    --bg: #0b0e11;
+    --panel: #12161c;
+    --panel2: #1a1f27;
+    --border: #2a313c;
+    --text: #e8ecf1;
+    --muted: #8b95a5;
+    --green: #00c853;
+    --red: #ff5252;
+    --accent: #3d8bfd;
+    --chip: #222833;
+    --warn: #ffb300;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+  .top {
+    flex: 0 0 auto;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px 6px;
+  }
+  .row1 {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  select#sym {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 15px; font-weight: 600;
+    max-width: 46vw;
+  }
+  .ltp-box { display: flex; flex-direction: column; min-width: 110px; }
+  .ltp { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.1; }
+  .chg { font-size: 13px; font-weight: 600; }
+  .up { color: var(--green); }
+  .dn { color: var(--red); }
+  .meta { font-size: 11px; color: var(--muted); margin-left: auto; text-align: right; }
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 800;
+    background: var(--warn); color: #111; padding: 2px 6px;
+    border-radius: 4px; letter-spacing: 0.5px; vertical-align: middle;
+  }
+  .tfs {
+    display: flex; gap: 6px; margin-top: 8px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+  }
+  .tf {
+    flex: 0 0 auto;
+    background: var(--chip); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+  }
+  .tf.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .chips {
+    display: flex; gap: 6px; margin-top: 8px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; padding-bottom: 2px; min-height: 34px;
+  }
+  .chip {
+    flex: 0 0 auto;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 6px 10px; font-size: 12px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .chip.long { border-color: rgba(0,200,83,.45); }
+  .chip.short { border-color: rgba(255,82,82,.45); }
+  .chip.active { outline: 2px solid var(--accent); }
+  .chip .g { font-weight: 800; }
+  .chip .side-long { color: var(--green); font-weight: 700; }
+  .chip .side-short { color: var(--red); font-weight: 700; }
+  #chart-wrap {
+    flex: 1 1 auto; position: relative; min-height: 0;
+    background: var(--bg);
+  }
+  #chart { position: absolute; inset: 0; }
+  #overlay {
+    position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  }
+  .status {
+    flex: 0 0 auto;
+    font-size: 11px; color: var(--muted);
+    padding: 4px 10px 8px; background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #666; }
+  .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.stale { background: var(--warn); }
+  .legend {
+    position: absolute; left: 10px; top: 8px; z-index: 6;
+    font-size: 11px; color: var(--muted); pointer-events: none;
+    background: rgba(11,14,17,.65); padding: 4px 8px; border-radius: 6px;
+  }
+  .legend span { margin-right: 8px; }
+  .l-entry { color: #3d8bfd; }
+  .l-sl { color: #ff5252; }
+  .l-t1 { color: #00c853; }
+  .l-t2 { color: #69f0ae; }
+  .tabs { display:flex; gap:0; margin-bottom:8px; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .tab { flex:1 1 0; background:var(--panel2); color:var(--muted); border:0; padding:8px 0; font-size:14px; font-weight:800; cursor:pointer; }
+  .tab.active { background:var(--accent); color:#fff; }
+  .optbar { display:none; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .optbar.show { display:flex; }
+  .cname { font-size:13px; font-weight:800; color:var(--text); background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:5px 8px; }
+  .typ { background:var(--chip); color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:5px 12px; font-size:12px; font-weight:800; cursor:pointer; }
+  .typ.active.ce { background:rgba(0,200,83,.22); color:var(--green); border-color:var(--green); }
+  .typ.active.pe { background:rgba(255,82,82,.22); color:var(--red); border-color:var(--red); }
+  .optnote { font-size:11px; color:var(--muted); }
+  a.tv-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 4px; padding: 5px 10px; border-radius: 8px;
+    background: transparent; color: #3d8bfd; font-size: 12px; font-weight: 700;
+    text-decoration: none; border: 1px solid rgba(61,139,253,.45);
+  }
+  #ls { flex:0 0 auto; background:#0e1217; border-bottom:1px solid var(--border); padding:4px 8px; font-size:12px; line-height:1.35; }
+  #ls .r { display:flex; gap:10px; align-items:center; white-space:nowrap; overflow-x:auto; scrollbar-width:none; }
+  #ls .r::-webkit-scrollbar { display:none; }
+  #ls .r + .r { margin-top:3px; }
+  #ls b { font-weight:800; }
+  #ls .up { color:var(--green); } #ls .dn { color:var(--red); } #ls .mu { color:var(--muted); }
+  #ls .ck { background:var(--chip); border:1px solid var(--border); border-radius:6px; padding:1px 6px; cursor:pointer; font-size:11px; }
+  #ls .lv { margin-left:auto; font-size:10px; }
+  #ls .ob { background:var(--accent); color:#fff; border:0; border-radius:4px; font-size:10px; padding:0 4px; margin-left:3px; cursor:pointer; }
+  #auditChip{display:none;margin:4px 8px;padding:3px 8px;border-radius:5px;background:#3a1218;border:1px solid #ff2d55;color:#ffc9d4;font-size:11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #auditChip.show{display:block}
+
+.srcb{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:5px;border:1px solid currentColor;white-space:nowrap}
+.srcb.ok{color:var(--green,#00E5A0)}.srcb.bad{color:#fff;background:#b3122e;border-color:#ff2d55}.srcb.warn{color:var(--amber,#F5A623)}
+#srcBadge{position:fixed;right:6px;bottom:4px;z-index:50;background:#0b0e11e6}
+#dashLink{color:var(--accent);font-size:11px;margin-left:8px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="ls">
+    <div class="r"><span id="lsN"><b>NIFTY</b> —</span><span id="lsV" class="mu">VIX —</span><span id="lsP" class="mu"></span><span class="lv mu" id="lsLive">● —</span></div>
+    <div class="r" id="lsM"></div>
+    <div class="r" id="lsS" style="display:none"></div>
+  </div>
+  <div class="top">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-mode="stock">Stock</button>
+      <button class="tab" data-mode="option">Option</button>
+    </div>
+    <div class="row1">
+      <select id="sym" aria-label="Symbol"></select>
+      <div class="ltp-box">
+        <div class="ltp" id="ltp">—</div>
+        <div class="chg" id="chg">—</div>
+      </div>
+      <div class="meta">
+        <div id="demoBadge" style="display:none"><span class="badge">DEMO</span></div>
+        <div id="feedAge">feed: —</div>
+        <a class="tv-btn" id="tvBtn" href="#" target="_blank" rel="noreferrer">TradingView</a>
+      </div>
+    </div>
+    <div class="tfs" id="tfs">
+      <button class="tf" data-tf="1m">1m</button>
+      <button class="tf" data-tf="3m">3m</button>
+      <button class="tf active" data-tf="5m">5m</button>
+      <button class="tf" data-tf="15m">15m</button>
+    </div>
+    <div class="optbar" id="optbar">
+      <span class="cname" id="cname">ATM —</span>
+      <button class="typ ce" data-typ="CE">CE</button>
+      <button class="typ pe" data-typ="PE">PE</button>
+      <span class="optnote" id="optnote"></span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div id="chart-wrap">
+    <div id="chart"></div>
+    <canvas id="overlay"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div id="auditChip"></div>
+  <div class="srcb warn" id="srcBadge">● GitHub data load ho raha hai…</div>
+  <div class="status">
+    <div><span class="dot" id="dot"></span><span id="statusText">loading…</span><a id="dashLink" href="#">← Dashboard</a></div>
+    <div id="srcText"></div>
+  </div>
+</div>
+<script src="lightweight-charts.standalone.production.js"></script>
+<script src="nl-data.js"></script>
+<script>
+(function () {
+  const TOKEN = new URLSearchParams(location.search).get("k") || "";
+  function api(path) { return NL.api(path); }
+
+  const SYMS = [
+    "NIFTY","ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK",
+    "BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA",
+    "DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE",
+    "HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL",
+    "KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC",
+    "POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS",
+    "TATACONSUM","TMPV","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO"
+  ];
+
+  const _qs = (new URLSearchParams(location.search).get("symbol") || "").toUpperCase();
+  if (_qs && /^[A-Z0-9&-]{1,32}$/.test(_qs) && !SYMS.includes(_qs)) SYMS.push(_qs);
+  let symbol = SYMS.includes(_qs) ? _qs : "SBIN";
+  const _qp = new URLSearchParams(location.search);
+  let mode = (_qp.get("tab") || "").toLowerCase() === "option" ? "option" : "stock";
+  let optType = ((_qp.get("type") || "").toUpperCase() === "PE" || (_qp.get("type") || "").toUpperCase() === "CE") ? _qp.get("type").toUpperCase() : null;
+  let optData = null;
+  let tf = mode === "option" ? "1m" : "5m";
+  let setups = [];
+  let auditIssues = [];
+  let priceLines = [];
+  let chart, candleSeries, volumeSeries;
+  let lastBars = [];
+  let pollTimer = null;
+  let overlayDirty = true;
+
+  const elSym = document.getElementById("sym");
+  const elLtp = document.getElementById("ltp");
+  const elChg = document.getElementById("chg");
+  const elChips = document.getElementById("chips");
+  const elDot = document.getElementById("dot");
+  const elStatus = document.getElementById("statusText");
+  const elSrc = document.getElementById("srcText");
+  const elAge = document.getElementById("feedAge");
+  const elDemo = document.getElementById("demoBadge");
+  const elLegend = document.getElementById("legend");
+  const wrap = document.getElementById("chart-wrap");
+  const overlay = document.getElementById("overlay");
+  const octx = overlay.getContext("2d");
+
+  SYMS.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s; o.textContent = s;
+    if (s === symbol) o.selected = true;
+    elSym.appendChild(o);
+  });
+
+  function istParts(ts) {
+    // Unix seconds → Asia/Kolkata calendar parts (IST = UTC+5:30)
+    const d = new Date((typeof ts === "number" ? ts : ts) * 1000);
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric", month: "short", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hour12: false,
+    });
+    const map = {};
+    for (const p of fmt.formatToParts(d)) map[p.type] = p.value;
+    return map;
+  }
+  function fmtIstTime(ts) {
+    const p = istParts(ts);
+    return p.hour + ":" + p.minute;
+  }
+  function fmtIstCrosshair(ts) {
+    const p = istParts(ts);
+    return p.day + " " + p.month + " " + p.hour + ":" + p.minute + " IST";
+  }
+  function theme() {
+    return {
+      layout: {
+        background: { type: "solid", color: "#0b0e11" },
+        textColor: "#8b95a5",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "#1a1f27" },
+        horzLines: { color: "#1a1f27" },
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        vertLine: { color: "#3d8bfd88", labelBackgroundColor: "#3d8bfd" },
+        horzLine: { color: "#3d8bfd88", labelBackgroundColor: "#3d8bfd" },
+      },
+      rightPriceScale: { borderColor: "#2a313c", scaleMargins: { top: 0.06, bottom: 0.18 } },
+      localization: {
+        locale: "en-IN",
+        timeFormatter: (time) => fmtIstCrosshair(time),
+      },
+      timeScale: {
+        borderColor: "#2a313c",
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: 25,
+        tickMarkFormatter: (time, tickMarkType) => {
+          // 0=Year 1=Month 2=DayOfMonth 3=Time 4=TimeWithSeconds
+          const p = istParts(time);
+          if (tickMarkType <= 2) return p.day + " " + p.month;
+          return p.hour + ":" + p.minute;
+        },
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+    };
+  }
+
+  function initChart() {
+    chart = LightweightCharts.createChart(document.getElementById("chart"), theme());
+    candleSeries = chart.addCandlestickSeries({
+      upColor: "#00c853",
+      downColor: "#ff5252",
+      borderUpColor: "#00c853",
+      borderDownColor: "#ff5252",
+      wickUpColor: "#00c853",
+      wickDownColor: "#ff5252",
+      priceLineVisible: false,
+      lastValueVisible: true,
+      autoscaleInfoProvider: (original) => {
+        const res = original();
+        if (!res || !res.priceRange) return res;
+        let min = res.priceRange.minValue;
+        let max = res.priceRange.maxValue;
+        setupsForSymbol().forEach(s => {
+          [s.entry, s.sl, s.t1, s.t2].forEach(v => {
+            if (v == null || v === "") return;
+            const p = +v;
+            if (!isFinite(p) || p <= 0) return;
+            if (p < min) min = p;
+            if (p > max) max = p;
+          });
+        });
+        const pad = Math.max((max - min) * 0.06, 1);
+        return { priceRange: { minValue: min - pad, maxValue: max + pad } };
+      },
+    });
+    volumeSeries = chart.addHistogramSeries({
+      priceFormat: { type: "volume" },
+      priceScaleId: "vol",
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    chart.priceScale("vol").applyOptions({
+      scaleMargins: { top: 0.85, bottom: 0 },
+      borderVisible: false,
+    });
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => { overlayDirty = true; drawOverlay(); });
+    new ResizeObserver(resize).observe(wrap);
+    resize();
+  }
+
+  function resize() {
+    if (!chart) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    chart.applyOptions({ width: w, height: h });
+    overlay.width = w * devicePixelRatio;
+    overlay.height = h * devicePixelRatio;
+    overlay.style.width = w + "px";
+    overlay.style.height = h + "px";
+    octx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    overlayDirty = true;
+    drawOverlay();
+  }
+
+  let userMoved = false;
+  function fitView() {
+    if (!chart || !lastBars.length) return;
+    const n = lastBars.length;
+    if (n < 60) chart.timeScale().setVisibleLogicalRange({ from: -1, to: Math.max(n + 22, 36) });
+    else chart.timeScale().fitContent();
+  }
+  ["pointerdown", "wheel", "touchstart"].forEach(ev => document.getElementById("chart-wrap").addEventListener(ev, () => { userMoved = true; }, { passive: true }));
+
+  function clearPriceLines() {
+    priceLines.forEach(pl => { try { candleSeries.removePriceLine(pl); } catch (_) {} });
+    priceLines = [];
+  }
+
+  function setupsForSymbol() {
+    if (mode === "option") {
+      const L = optData && optData.levels;
+      if (!L || L.entry == null || L.sl == null || L.t1 == null) return [];
+      const base = setups.find(s => (s.symbol || "").toUpperCase() === symbol) || {};
+      return [{ symbol, side: "LONG", grade: base.grade || "", status: base.status || "LIVE", opt: (optData.type || ""), est: !!L.est,
+               entry: +L.entry, sl: +L.sl, t1: +L.t1, t1R: null,
+               t2: (L.t2 != null && +L.t2 > 0) ? +L.t2 : null, time: base.time, demo: base.demo }];
+    }
+    return setups.filter(s => (s.symbol || "").toUpperCase() === symbol);
+  }
+
+  function tvChartUrl(sym) {
+    const s = (sym === "NIFTY" || sym === "NIFTY 50") ? "NSE:NIFTY" : ("NSE:" + sym);
+    return "https://www.tradingview.com/chart/?symbol=" + encodeURIComponent(s);
+  }
+  function updateTvBtn() {
+    const a = document.getElementById("tvBtn");
+    if (!a) return;
+    a.href = tvChartUrl(symbol);
+    a.textContent = "TradingView";
+  }
+
+  function triggerLogicalIndex(setup) {
+    if (!lastBars.length) return 0;
+    const n = lastBars.length;
+    // Prefer setup.time HH:MM (IST) on the session of the last bar
+    const hhmm = (setup.time || setup.trigger || "").toString();
+    const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+    if (m) {
+      const wantH = +m[1], wantM = +m[2];
+      let best = n - 4;
+      for (let i = 0; i < n; i++) {
+        const p = istParts(lastBars[i].time);
+        const h = +p.hour, mi = +p.minute;
+        if (h < wantH || (h === wantH && mi <= wantM)) best = i;
+        else break;
+      }
+      // start a couple bars before trigger so box covers the signal area
+      return Math.max(0, best - 2);
+    }
+    return Math.max(0, n - 4);
+  }
+
+  function drawSetupLines() {
+    clearPriceLines();
+    const list = setupsForSymbol();
+    const hasDemo = list.some(s => s.demo);
+    elDemo.style.display = hasDemo ? "block" : "none";
+    updateTvBtn();
+    let legend = "";
+    list.forEach((s, i) => {
+      // Thin axis labels only — short visual lines drawn in overlay box
+      const lines = [
+        { price: +s.entry, color: "#3d8bfd", title: "Entry" },
+        { price: +s.sl, color: "#ff5252", title: "SL" },
+        { price: +s.t1, color: "#00c853", title: "T1" + (s.t1R != null ? " (" + s.t1R + "R)" : "") },
+      ];
+      if (s.t2 != null) {
+        lines.push({ price: +s.t2, color: "#69f0ae", title: "T2" + (s.t2R != null ? " (" + s.t2R + "R)" : "") });
+      }
+      lines.forEach(L => {
+        if (!isFinite(L.price)) return;
+        const pl = candleSeries.createPriceLine({
+          price: L.price,
+          color: L.color,
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.SparseDotted,
+          lineVisible: false,
+          axisLabelVisible: true,
+          title: L.title,
+        });
+        priceLines.push(pl);
+      });
+      if (i === 0) {
+        legend = (s.est ? '<span style="color:var(--warn)">est. (delta)</span>' : '') + '<span class="l-entry">Entry ' + s.entry + '</span>' +
+                 '<span class="l-sl">SL ' + s.sl + '</span>' +
+                 '<span class="l-t1">T1 ' + s.t1 + (s.t1R != null ? " (" + s.t1R + "R)" : "") + '</span>' +
+                 (s.t2 != null ? '<span class="l-t2">T2 ' + s.t2 + (s.t2R != null ? " (" + s.t2R + "R)" : "") + '</span>' : "");
+      }
+    });
+    elLegend.innerHTML = legend;
+    // Re-apply candle data so autoscaleInfoProvider re-runs with current setups
+    if (lastBars.length) {
+      candleSeries.setData(lastBars.map(b => ({
+        time: b.time, open: b.open, high: b.high, low: b.low, close: b.close,
+      })));
+    }
+    overlayDirty = true;
+    drawOverlay();
+  }
+
+  function drawHLine(x1, x2, y, color, dash) {
+    if (y == null || x1 == null || x2 == null) return;
+    octx.beginPath();
+    octx.strokeStyle = color;
+    octx.lineWidth = 1.25;
+    if (dash) octx.setLineDash(dash); else octx.setLineDash([]);
+    octx.moveTo(x1, y);
+    octx.lineTo(x2, y);
+    octx.stroke();
+    octx.setLineDash([]);
+  }
+
+  function drawOverlay() {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    // Keep bitmap transform in sync (media/CSS coordinate space)
+    octx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    octx.clearRect(0, 0, w, h);
+    const list = setupsForSymbol();
+    if (!list.length || !candleSeries || !chart || !lastBars.length) return;
+    const ts = chart.timeScale();
+    const BOX_BARS = 14; // ~15–20 bars; rightOffset ~25 leaves whitespace
+    list.forEach(s => {
+      const entry = +s.entry, sl = +s.sl, t1 = +s.t1, t2 = s.t2 != null ? +s.t2 : null;
+      // Exact candle-series media coordinates (same scale as axis labels)
+      const yE = candleSeries.priceToCoordinate(entry);
+      const ySL = candleSeries.priceToCoordinate(sl);
+      const yT1 = candleSeries.priceToCoordinate(t1);
+      const yT2 = t2 != null ? candleSeries.priceToCoordinate(t2) : null;
+      if (yE == null || ySL == null || yT1 == null) return;
+      if (t2 != null && yT2 == null) return;
+
+      const startL = triggerLogicalIndex(s);
+      const endL = startL + BOX_BARS;
+      const x1 = ts.logicalToCoordinate(startL);
+      const x2 = ts.logicalToCoordinate(endL);
+      if (x1 == null || x2 == null) return;
+      const left = Math.min(x1, x2);
+      const right = Math.max(x1, x2);
+      const bw = Math.max(8, right - left);
+
+      // SHORT: red risk = entry → SL (above); green reward = entry → T1; lighter to T2
+      const topR = Math.min(yE, ySL), botR = Math.max(yE, ySL);
+      octx.fillStyle = "rgba(255, 82, 82, 0.18)";
+      octx.fillRect(left, topR, bw, Math.max(1, botR - topR));
+
+      const topT1 = Math.min(yE, yT1), botT1 = Math.max(yE, yT1);
+      octx.fillStyle = "rgba(0, 200, 83, 0.18)";
+      octx.fillRect(left, topT1, bw, Math.max(1, botT1 - topT1));
+
+      if (yT2 != null) {
+        const topT2 = Math.min(yT1, yT2), botT2 = Math.max(yT1, yT2);
+        octx.fillStyle = "rgba(0, 200, 83, 0.10)";
+        octx.fillRect(left, topT2, bw, Math.max(1, botT2 - topT2));
+      }
+
+      const boxTop = Math.min(topR, topT1, yT2 != null ? Math.min(yT1, yT2) : topT1);
+      const boxBot = Math.max(botR, botT1, yT2 != null ? Math.max(yT1, yT2) : botT1);
+      const stU = String(s.status || "").toUpperCase();
+      const isWb = stU === "WATCH" || stU === "TRIGGERED_LOWR";
+      const isTrig = stU === "TRIGGERED";
+      octx.strokeStyle = stU === "TRIGGERED_LOWR" ? "rgba(140,140,150,0.85)"
+                        : isWb ? "rgba(255,179,0,0.85)"
+                        : isTrig ? "rgba(0,200,83,0.85)"
+                        : "rgba(232,236,241,0.30)";
+      octx.lineWidth = 1;
+      octx.setLineDash(isWb ? [3, 3] : []);
+      octx.strokeRect(left + 0.5, boxTop + 0.5, bw - 1, Math.max(1, boxBot - boxTop - 1));
+      octx.setLineDash([]);
+
+      // Short lines limited to the box — Y from candleSeries.priceToCoordinate
+      drawHLine(left, right, yE, "#3d8bfd", null);
+      drawHLine(left, right, ySL, "#ff5252", [5, 4]);
+      drawHLine(left, right, yT1, "#00c853", null);
+      if (yT2 != null) drawHLine(left, right, yT2, "#69f0ae", [2, 3]);
+
+      // Compact in-box label (DEMO stays in top badge only)
+      const side = (s.side || "").toUpperCase();
+      const ent = mode === "option" ? (setups.find(z => z.symbol === symbol) || {}).entry : s.entry;
+      let label = stU === "TRIGGERED_LOWR" ? "TRIGGER · <1R"
+                : stU === "TRIGGERED" ? side + (s.grade ? " " + s.grade : "") + " · TRIGGERED"
+                : stU === "WATCH" ? "WATCH · " + (side === "SHORT" ? "<" : ">") + ent
+                : side + (s.grade ? " " + s.grade : "");
+      octx.font = "bold 10px -apple-system, BlinkMacSystemFont, sans-serif";
+      const maxW = Math.max(20, chart.timeScale().width() - Math.max(2, left + 4) - 4);
+      while (label.length > 4 && octx.measureText(label).width + 10 > maxW) label = label.slice(0, -2) + "…";
+      const tw = Math.min(octx.measureText(label).width + 10, maxW);
+      const lx = Math.max(2, left + 4);
+      const ly = Math.min(yE, ySL) + 14;
+      octx.fillStyle = stU === "TRIGGERED_LOWR" ? "rgba(140,140,150,0.92)"
+                      : stU === "WATCH" ? "rgba(255,179,0,0.92)"
+                      : side === "LONG" ? "rgba(0,200,83,0.92)" : "rgba(255,82,82,0.92)";
+      octx.fillRect(lx, ly - 11, tw, 14);
+      octx.fillStyle = "#0b0e11";
+      octx.fillText(label, lx + 5, ly);
+    });
+  }
+
+    function setLtp(q, age) {
+    if (!q) {
+      elLtp.textContent = "—";
+      elChg.textContent = "no quote";
+      elChg.className = "chg";
+      return;
+    }
+    elLtp.textContent = Number(q.ltp).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+    const sign = q.pct >= 0 ? "+" : "";
+    elChg.textContent = sign + q.chg + " (" + sign + q.pct + "%)";
+    elChg.className = "chg " + (q.pct >= 0 ? "up" : "dn");
+    if (age != null) {
+      const fresh = age <= 60;
+      elDot.className = "dot " + (fresh ? "live" : "stale");
+      elAge.textContent = fresh ? ("live · " + Math.round(age) + "s") : ("stale · " + Math.round(age) + "s ago");
+    }
+  }
+
+
+  async function refreshAudit() {
+    try {
+      const a = await api("/api/audit");
+      auditIssues = a.issues || [];
+    } catch (e) { auditIssues = []; }
+    const el = document.getElementById("auditChip");
+    if (!el) return;
+    const mine = auditIssues.filter(i => !i.symbol || String(i.symbol).toUpperCase() === symbol);
+    if (!mine.length) { el.className = ""; el.textContent = ""; return; }
+    el.className = "show";
+    el.textContent = "⚠ CHECK · " + mine.map(i => i.msg_hinglish || i.id).join(" · ");
+  }
+  function renderChips() {
+    elChips.innerHTML = "";
+    if (!setups.length) {
+      elChips.innerHTML = '<div class="chip" style="opacity:.6">No setups yet</div>';
+      return;
+    }
+    setups.forEach((s, idx) => {
+      const d = document.createElement("div");
+      const side = (s.side || "").toUpperCase();
+      d.className = "chip " + (side === "LONG" ? "long" : "short") + (s.symbol === symbol ? " active" : "");
+      const stc = String(s.status || "").toUpperCase();
+      const tag = stc === "WATCH" ? '<span style="color:var(--warn)">WATCH</span> '
+                 : stc === "TRIGGERED_LOWR" ? '<span style="color:#9aa">TRIG&lt;1R</span> '
+                 : stc === "TRIGGERED" ? '<span class="g">TRIGGERED</span> '
+                 : '<span class="g">' + (s.grade || "?") + "</span> ";
+      d.innerHTML = tag + s.symbol + ' <span class="side-' + side.toLowerCase() + '">' + side + "</span>" +
+        (s.demo ? ' <span class="badge">DEMO</span>' : "");
+      d.onclick = () => {
+        symbol = s.symbol;
+        elSym.value = symbol;
+        loadAll(true);
+      };
+      elChips.appendChild(d);
+    });
+  }
+
+  function toVolumeData(bars) {
+    return bars.map(b => ({
+      time: b.time,
+      value: b.volume || 0,
+      color: b.close >= b.open ? "rgba(0,200,83,0.45)" : "rgba(255,82,82,0.45)",
+    }));
+  }
+
+  function syncUrl() {
+    const u = new URL(location.href);
+    u.searchParams.set("symbol", symbol);
+    if (mode === "option") u.searchParams.set("tab", "option"); else u.searchParams.delete("tab");
+    if (mode === "option" && optType) u.searchParams.set("type", optType); else u.searchParams.delete("type");
+    history.replaceState(null, "", u.toString());
+  }
+  function renderModeUi() {
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    document.getElementById("optbar").classList.toggle("show", mode === "option");
+    const d = optData || {};
+    const ty = (d.type || optType || "");
+    document.querySelectorAll(".typ").forEach(b => b.classList.toggle("active", b.dataset.typ === ty));
+    document.getElementById("cname").textContent = d.contract ? d.contract : (d.pending ? "resolving ATM…" : "ATM —");
+    let note = "";
+    if (mode === "option") {
+      if (d.source === "setup") note = "setup contract";
+      else if (d.source === "est" && d.levels) note = "ATM " + d.atm.strike + " · levels est. (delta " + d.levels.delta + (d.levels.iv ? ", IV " + d.levels.iv + "%" : "") + ")";
+      else if (d.atm) note = "ATM " + d.atm.strike + " · exp " + d.atm.expiry + (d.levels ? "" : " · no levels");
+      else note = d.pending ? "feed subscribing… (needs market open)" : "";
+    }
+    document.getElementById("optnote").textContent = note;
+  }
+  async function loadOption(fit) {
+    let q = "/api/option?symbol=" + encodeURIComponent(symbol) + "&tf=" + tf;
+    if (optType) q += "&type=" + optType;
+    const data = await api(q);
+    optData = data;
+    lastBars = data.bars || [];
+    candleSeries.setData(lastBars.map(b => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })));
+    volumeSeries.setData(toVolumeData(lastBars));
+    if (fit) { userMoved = false; fitView(); setTimeout(fitView, 120); } else if (!userMoved) fitView();
+    elSrc.textContent = "NFO · " + (data.contract || "—") + " · " + lastBars.length + " bars";
+    const lq = data.ltp || {};
+    setLtp(lq.quote, lq.age_s);
+    renderModeUi();
+    drawSetupLines();
+    return data;
+  }
+
+  async function loadCandles(fit) {
+    if (mode === "option") return loadOption(fit);
+    const data = await api("/api/candles?symbol=" + encodeURIComponent(symbol) + "&tf=" + tf);
+    lastBars = data.bars || [];
+    candleSeries.setData(lastBars.map(b => ({
+      time: b.time, open: b.open, high: b.high, low: b.low, close: b.close,
+    })));
+    volumeSeries.setData(toVolumeData(lastBars));
+    if (fit) { userMoved = false; fitView(); setTimeout(fitView, 120); } else if (!userMoved) fitView();
+    elSrc.textContent = (data.src || "") + " · " + (data.count || 0) + " bars";
+    drawSetupLines();
+    return data;
+  }
+
+  async function loadLtp() {
+    const ltpSym = mode === "option" ? (optData && optData.contract) : symbol;
+    if (!ltpSym) return null;
+    const data = await api("/api/ltp?symbol=" + encodeURIComponent(ltpSym));
+    setLtp(data.quote, data.age_s);
+    // live last-candle update from LTP when feed fresh
+    if (data.fresh && data.quote && lastBars.length) {
+      const ltp = data.quote.ltp;
+      const last = lastBars[lastBars.length - 1];
+      const updated = {
+        time: last.time,
+        open: last.open,
+        high: Math.max(last.high, ltp),
+        low: Math.min(last.low, ltp),
+        close: ltp,
+      };
+      candleSeries.update(updated);
+      lastBars[lastBars.length - 1] = Object.assign({}, last, updated, { volume: last.volume });
+      overlayDirty = true;
+      drawOverlay();
+    }
+    elStatus.textContent = data.fresh ? "market feed live" : "market closed / stale data";
+    return data;
+  }
+
+  async function loadSetups() {
+    const data = await api("/api/setups");
+    setups = (data.setups || []).map(s => {
+      const x = Object.assign({}, s);
+      if (!(+x.t2 > 0)) { x.t2 = null; x.t2R = null; }
+      if (!(+x.t1R)) x.t1R = null; if (!(+x.t2R)) x.t2R = null;
+      x.status = String(x.status || "LIVE").toUpperCase();
+      return x;
+    });
+    renderChips();
+    drawSetupLines();
+    refreshAudit();
+  }
+
+  async function loadAll(fit) {
+    elStatus.textContent = "loading…";
+    try {
+      await Promise.all([loadCandles(fit), loadLtp(), loadSetups()]);
+    } catch (e) {
+      elStatus.textContent = String(e.message || e);
+      elDot.className = "dot";
+    }
+  }
+
+  document.querySelectorAll(".tf").forEach(b => b.classList.toggle("active", b.dataset.tf === tf));
+  document.getElementById("tabs").addEventListener("click", (e) => {
+    const b = e.target.closest(".tab"); if (!b) return;
+    mode = b.dataset.mode; optData = null; syncUrl(); renderModeUi(); loadAll(true);
+  });
+  document.getElementById("optbar").addEventListener("click", (e) => {
+    const b = e.target.closest(".typ"); if (!b) return;
+    optType = b.dataset.typ; optData = null; syncUrl(); loadAll(true);
+  });
+  renderModeUi();
+  elSym.addEventListener("change", () => {
+    symbol = elSym.value; optData = null; syncUrl();
+    loadAll(true);
+  });
+  document.getElementById("tfs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".tf");
+    if (!btn) return;
+    document.querySelectorAll(".tf").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    tf = btn.dataset.tf;
+    loadAll(true);
+  });
+
+  // Keep overlay in sync while scrolling/zooming via rAF
+  function loop() {
+    // Always redraw when a setup is on screen so box Y tracks price scale / autoscale
+    if (overlayDirty || setupsForSymbol().length) {
+      overlayDirty = false;
+      drawOverlay();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---- LIVE strip (1s) ----
+  const _ls = (id) => document.getElementById(id);
+  const _f = (n, d) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("en-IN", { minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d });
+  const _cl = (v) => v > 0 ? "up" : v < 0 ? "dn" : "mu";
+  const _sg = (v) => (v > 0 ? "+" : "") + _f(v);
+  let _lsQuotes = {}, _lsPaper = null, _lsAt = 0, _lsAge = null;
+  function goSym(sym, opt) {
+    if (!SYMS.includes(sym)) { if (!/^[A-Z0-9&-]{1,32}$/.test(sym)) return; SYMS.push(sym); const o = document.createElement('option'); o.value = sym; o.textContent = sym; elSym.appendChild(o); }
+    symbol = sym; elSym.value = sym; optData = null;
+    if (opt) mode = "option"; else if (opt === false) mode = "stock";
+    syncUrl(); renderModeUi(); loadAll(true);
+  }
+  _ls("ls").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-s]"); if (!t) return;
+    goSym(t.dataset.s, e.target.classList.contains("ob") ? true : undefined);
+  });
+  function renderStrip() {
+    const q = _lsQuotes, n = q.NIFTY, v = q.INDIAVIX;
+    if (n) _ls("lsN").innerHTML = '<span class="ck" data-s="NIFTY"><b>NIFTY</b> ' + _f(n.ltp) + ' <span class="' + _cl(n.chg) + '">' + _sg(n.chg) + " (" + _sg(n.pct) + "%)</span></span>";
+    if (v) _ls("lsV").innerHTML = 'VIX <span class="' + _cl(v.chg) + '">' + _f(v.ltp) + " " + _sg(v.pct) + "%</span>";
+    const ok = _lsAt && (Date.now() - _lsAt) < 5000;
+    const L = _ls("lsLive"); L.className = "lv " + (ok ? "up" : "mu");
+    L.textContent = (ok ? "LIVE ● " : "STALE ● ") + (_lsAge == null ? "—" : Math.round(_lsAge) + "s");
+    const st = Object.values(q).filter(x => x && x.pct != null && SYMS.includes(x.symbol) && x.symbol !== "NIFTY");
+    st.sort((a, b) => b.pct - a.pct);
+    const ch = (x) => '<span class="ck" data-s="' + x.symbol + '">' + x.symbol + ' <span class="' + _cl(x.pct) + '">' + _sg(x.pct) + "%</span></span>";
+    _ls("lsM").innerHTML = st.length ? '<span class="up">▲</span>' + st.slice(0, 3).map(ch).join("") + '<span class="dn">▼</span>' + st.slice(-3).reverse().map(ch).join("") : "";
+    let parts = [];
+    (setups || []).forEach(s => {
+      const lq = q[s.symbol], risk = Math.abs((s.entry || 0) - (s.sl || 0));
+      const sg = s.side === "LONG" ? 1 : -1;
+      const r = (lq && risk) ? sg * (lq.ltp - s.entry) / risk : null;
+      const stu = String(s.status || "").toUpperCase();
+      const stlabel = stu === "WATCH" ? '<span style="color:var(--warn)">WATCH</span>'
+                     : stu === "TRIGGERED_LOWR" ? '<span style="color:#9aa">TRIG&lt;1R</span>'
+                     : stu === "TRIGGERED" ? '<span style="color:var(--up,#00c853)">TRIGGERED</span>'
+                     : (s.grade || "");
+      parts.push('<span class="ck" data-s="' + s.symbol + '"><b class="' + (sg > 0 ? "up" : "dn") + '">' + (sg > 0 ? "▲" : "▼") + s.symbol + "</b> " + stlabel +
+        " E" + _f(s.entry) + " SL" + _f(s.sl) + " T1 " + _f(s.t1) + " · " + (lq ? _f(lq.ltp) : "—") +
+        (r == null ? "" : ' <span class="' + _cl(r) + '">' + (r > 0 ? "+" : "") + r.toFixed(2) + "R</span>") +
+        '<button class="ob" data-s="' + s.symbol + '">OPT</button></span>');
+    });
+    const p = _lsPaper;
+    if (p) {
+      const d = p.day || {}, u = p.unrealized || {};
+      let h = '<span class="mu">PAPER</span> <span class="' + _cl(d.pnl) + '">₹' + _sg(d.pnl) + " / " + (d.r > 0 ? "+" : "") + _f(d.r) + "R</span>";
+      if ((p.open || []).length) h += ' <span class="mu">open</span> <span class="' + _cl(u.pnl) + '">₹' + _sg(u.pnl) + "</span>";
+      parts.push(h);
+      (p.open || []).forEach(o => {
+        const nm = o.mode === "option" && o.contract ? o.contract : o.symbol;
+        parts.push('<span class="ck" data-s="' + o.symbol + '">' + (o.side === "LONG" ? "▲" : "▼") + nm + " " + o.qty + "@" + _f(o.fill) + " → " + _f(o.ltp) +
+          ' <span class="' + _cl(o.uPnl) + '">₹' + _sg(o.uPnl) + " " + (o.uR != null ? _f(o.uR) + "R" : "") + "</span></span>");
+      });
+    }
+    const S = _ls("lsS"); S.style.display = parts.length ? "flex" : "none"; S.innerHTML = parts.join("");
+  }
+  async function pollStrip() {
+    try {
+      const d = await api("/api/ltp");
+      _lsQuotes = d.quotes || {}; _lsAge = d.age_s; _lsAt = (d.fresh ? Date.now() : 0);
+    } catch (e) { /* keep last */ }
+    renderStrip();
+  }
+  async function pollPaper() { try { _lsPaper = await api("/api/paper"); } catch (e) {} }
+  pollPaper(); pollStrip();
+  setInterval(pollStrip, 1000);
+  setInterval(pollPaper, 2000);
+
+  function addExtraSyms() { const b = NL.bundle; ((b && b.symbols && b.symbols.extra) || []).forEach(x => { if (/\d(CE|PE)$/.test(x) || SYMS.includes(x)) return; SYMS.push(x); const o = document.createElement('option'); o.value = x; o.textContent = x; elSym.appendChild(o); }); }
+  function renderSrc() { const b = NL.badgeHTML(), e = document.getElementById('srcBadge'); e.className = 'srcb ' + b.cls; e.innerHTML = b.html; }
+  (function(){ const u = new URLSearchParams(location.search), k = u.get('k') || ''; const nt = u.get('noTunnel') === '1' || u.get('forceFallback') === '1'; document.getElementById('dashLink').href = './?k=' + encodeURIComponent(k) + (nt ? '&noTunnel=1' : ''); })();
+  NL.onChange(() => { addExtraSyms(); renderSrc(); }); setInterval(renderSrc, 1000);
+  initChart();
+  loop();
+  loadAll(true);
+  pollTimer = setInterval(() => {
+    loadLtp().catch(() => {});
+    // re-fetch candles every 5s so new bars appear when market is open
+  }, 1000);
+  setInterval(() => { loadCandles(false).catch(() => {}); loadSetups().catch(() => {}); refreshAudit().catch(() => {}); }, 5000);
+})();
+</script>
+</body>
+</html>

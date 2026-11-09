@@ -1,120 +1,259 @@
-<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nifty Live</title><style>
-html,body{margin:0;min-height:100%;background:#0b0f14;color:#dde3ea;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-#f{position:fixed;inset:0;width:100%;height:100%;border:0;display:none}
-#m{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:18px}
-#fb{display:none;max-width:860px;margin:0 auto;padding:10px 12px 40px}
-.ban{background:#3a2a06;border:1px solid #d9a21b;color:#ffd77a;border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45}
-.ban b{color:#fff}.ban.old{background:#3a0f12;border-color:#e0545e;color:#ffb3b8}
-.row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-.pill{flex:1 1 120px;background:#121a24;border:1px solid #223042;border-radius:10px;padding:8px 10px}
-.pill .k{font-size:11px;color:#8aa0b6;letter-spacing:.5px}.pill .v{font-size:18px;font-weight:700;margin-top:2px}
-.up{color:#3ddc84}.dn{color:#ff6b6b}.mut{color:#8aa0b6}
-h2{font-size:14px;color:#8aa0b6;letter-spacing:1px;margin:18px 0 8px;text-transform:uppercase}
-.card{background:#121a24;border:1px solid #223042;border-radius:12px;padding:10px 12px;margin-bottom:8px}
-.card.watch{border-style:dashed;border-color:#d9a21b}.card.done{opacity:.85}
-.hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.sym{font-size:17px;font-weight:700}.badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid currentColor;margin-left:6px}
-.g-ap{color:#3ddc84}.g-a{color:#7cc4ff}.g-w{color:#ffcc55}.g-c{color:#b9a7ff}
-.lv{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:4px 10px;margin-top:8px;font-size:13px}
-.lv span{color:#8aa0b6;font-size:11px;display:block}
-.note{font-size:12px;color:#9fb0c2;margin-top:6px;line-height:1.4;word-break:break-word}
-table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 4px;border-bottom:1px solid #1d2935;text-align:left}th{color:#8aa0b6;font-weight:600;font-size:11px}
-.news{font-size:13px;line-height:1.45}.news .t{color:#8aa0b6;font-size:11px}
-.foot{font-size:11px;color:#6b7f93;margin-top:18px}
-</style></head>
-<body><div id="m">Loading…</div><iframe id="f" allow="fullscreen"></iframe><div id="fb"></div><script>
-const q=new URLSearchParams(location.search),k=q.get('k')||'',go=q.get('go'),FORCE=q.get('forceFallback')==='1';
-q.delete('go');q.delete('forceFallback');
-const f=document.getElementById('f'),m=document.getElementById('m'),fb=document.getElementById('fb');
-let cur=null,mode='init',snap=null,snapHosts=[],lastApi=0,deadSince=0;
-const REPO='Shiv0626/nifty-live',API='https://api.github.com/repos/'+REPO,RAW='https://raw.githubusercontent.com/'+REPO+'/';
-function to(u,ms,o){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({signal:c.signal,cache:'no-store'},o||{})).finally(()=>clearTimeout(t));}
-async function getJ(u,ms,o){const r=await to(u,ms,o);if(!r.ok)throw new Error(r.status);return r.json();}
-function collect(j,l){if(!j)return l;const add=u=>{if(typeof u==='string'&&u.startsWith('https://')&&!l.includes(u))l.push(u)};add(j.host);if(Array.isArray(j.hosts))j.hosts.forEach(add);return l;}
-async function loadHosts(useApi){
-  const l=[];
-  const jobs=[getJ('host.json?t='+Date.now(),5000).then(j=>collect(j,l)).catch(()=>{})];
-  if(useApi)jobs.push(getJ(API+'/contents/host.json?t='+Date.now(),5000,{headers:{Accept:'application/vnd.github.raw'}}).then(j=>collect(j,l)).catch(()=>{}));
-  await Promise.all(jobs);
-  snapHosts.forEach(h=>{if(!l.includes(h))l.push(h)});
-  return l;
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0A0C10"/>
+<script>(function(){var q=new URLSearchParams(location.search);if(q.get('go')==='chart'){q.delete('go');location.replace('chart.html?'+q.toString())}})()</script>
+<title>Nifty 50 Setup Dashboard · Live</title>
+<style>
+:root{--bg:#0A0C10;--panel:#161922;--panel2:#1A1E28;--border:#2A2F3A;--blue:#4CC9F0;--green:#00E5A0;--pink:#FF2D95;--amber:#F5A623;--muted:#6B7280;--text:#E8EAED;--dim:#9CA3AF;--hair:#1F2430;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;--hi:"Noto Sans Devanagari","Noto Sans","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px}
+a{color:inherit;text-decoration:none}
+#app{display:flex;flex-direction:column;gap:6px;padding:6px;height:100vh;height:100dvh}
+.hdr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ttl{color:var(--blue);font-weight:700;letter-spacing:.12em;font-size:12px;white-space:nowrap}
+.live{font-size:10px;letter-spacing:.1em}
+.ctrs{display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
+.ctr{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:3px 7px;white-space:nowrap}
+.ctr .k{color:var(--muted);font-size:9px;letter-spacing:.08em;margin-right:5px}.ctr .v{font-weight:700}.ctr .d{font-size:10px;margin-left:4px}
+.g{color:var(--green)}.p{color:var(--pink)}.b{color:var(--blue)}.a{color:var(--amber)}.m{color:var(--muted)}.dm{color:var(--dim)}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.lbl{color:var(--muted);font-size:9px;letter-spacing:.14em;margin-bottom:4px;display:flex;justify-content:space-between;gap:6px;flex:0 0 auto}
+.scroll{overflow:auto;min-height:0;flex:1}
+#news{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start}
+.nw{display:flex;gap:10px;align-items:baseline;min-width:0}
+.nhi{font-family:var(--hi);font-size:17px;font-weight:700;line-height:1.3}
+.nim{font-family:var(--hi);font-size:14px;line-height:1.3;margin-top:2px}
+.nmeta{font-size:10px;color:var(--muted);white-space:nowrap}
+.main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.5fr) minmax(0,1fr);gap:6px;flex:1;min-height:0}
+.col{display:flex;flex-direction:column;gap:6px;min-height:0;min-width:0}
+.card{border:1px solid var(--border);border-radius:7px;padding:6px;margin-bottom:6px;background:var(--panel2)}
+.card.watch{border-style:dotted;border-color:var(--amber)}
+.card.triggered{border-style:solid;border-color:var(--green)}
+.card.lowr{border-style:dotted;border-color:var(--muted)}
+#auditStrip{display:none;background:#3a1218;border:1px solid #ff2d55;border-radius:7px;padding:5px 8px;margin:0 0 2px;max-height:72px;overflow:auto}
+#auditStrip.show{display:block}
+#auditStrip .ah{color:#ff6b8a;font-weight:700;font-size:10px;letter-spacing:.12em;margin-right:8px}
+#auditStrip .ai{font-size:11px;color:#ffc9d4;margin:2px 0;font-family:var(--hi);line-height:1.25}
+@media (max-width:900px){#auditStrip{max-height:96px}}
+.card .h{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.lv{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 6px;margin:4px 0;font-size:11px}
+.lv span{white-space:nowrap}
+.btns{display:flex;gap:4px;flex-wrap:wrap}
+.btn{border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:10px;background:var(--panel);color:var(--blue);cursor:pointer}
+.badge{border-radius:4px;padding:0 5px;font-size:10px;font-weight:700}
+.row{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid var(--hair);font-size:11px;align-items:baseline}
+.row .w{color:var(--dim);flex:1;min-width:0}
+#chart{width:100%;height:100%;display:block}
+.hbtn{background:#111;color:#F5A623;border:1px solid #F5A623;border-radius:3px;font:inherit;font-size:10px;padding:0 6px;margin-left:4px;cursor:pointer;line-height:15px}.hbtn:hover{background:#F5A623;color:#000}@media(max-width:600px){.hs{display:none}}
+.heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:3px}
+.tile{border-radius:4px;padding:3px 4px;font-size:10px;line-height:1.25;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:block}
+.tile b{font-size:10px}
+.sec{font-size:9px;color:var(--muted);letter-spacing:.1em;margin:4px 0 2px;grid-column:1/-1}
+table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px}td{padding:2px;border-top:1px solid var(--hair);white-space:nowrap}#paper table{font-size:10px}#paper td,#paper th{padding:2px 3px}
+.foot{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;flex:0 0 auto}
+@media (max-width:900px){
+ #app{height:auto}.main{grid-template-columns:minmax(0,1fr);}
+ .panel{overflow:visible}.scroll{overflow:visible}
+ #chartP{height:220px}.nhi{font-size:16px}
+ #news{grid-template-columns:1fr}
+ .hdr{flex-direction:column;align-items:stretch}.ctrs{flex:none;width:100%}.ctr{padding:2px 5px}
+ .panel,.col{flex:none!important}#chartP{flex:none!important}
+ #newsP{max-height:300px!important}#newsP .scroll,#gradedP .scroll{overflow:auto}#gradedP{max-height:260px}#newsP,#gradedP{overflow:hidden!important}#newsP .scroll,#gradedP .scroll{flex:1 1 auto;min-height:0}
 }
-async function alive(h){try{const r=await to(h+'/api/ltp?k='+encodeURIComponent(k),4500);return r.ok}catch(e){return false}}
-async function firstAlive(list){if(!list.length)return null;
-  return new Promise(res=>{let n=list.length;list.forEach(h=>alive(h).then(ok=>{if(ok)res(h);else if(--n===0)res(null)}))});}
-function target(h){return h+(go==='chart'?'/':'/dash')+(q.toString()?'?'+q:'')}
-function show(h){if(h!==cur||f.style.display==='none'){cur=h;f.src=target(h);}mode='live';deadSince=0;f.style.display='block';m.style.display='none';fb.style.display='none';}
-async function cycle(){
-  if(FORCE){toFallback();return}
-  if(mode==='live'&&cur&&await alive(cur))return;
-  const useApi=mode==='init'||Date.now()-lastApi>180000; if(useApi)lastApi=Date.now();
-  const l=await loadHosts(useApi);
-  const ordered=cur&&l.includes(cur)?[cur,...l.filter(x=>x!==cur)]:l;
-  const h=await firstAlive(ordered);
-  if(h){show(h);return}
-  toFallback();
+
+.srcb{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:5px;border:1px solid currentColor;white-space:nowrap}
+.srcb.ok{color:var(--green,#00E5A0)}.srcb.bad{color:#fff;background:#b3122e;border-color:#ff2d55}.srcb.warn{color:var(--amber,#F5A623)}
+</style></head><body>
+<div id="app">
+ <div class="hdr">
+  <span class="ttl">SETUP_WATCH // NIFTY 50</span><span class="live m" id="live">● —</span><span class="srcb warn" id="srcBadge">● GitHub data load ho raha hai…</span>
+  <div class="ctrs" id="ctrs"></div>
+ </div>
+ <div id="auditStrip"></div>
+ <div class="panel" id="newsP" style="flex:0 0 auto;max-height:22vh">
+  <div class="lbl"><span>NEWS FLASH · हिंदी</span><span id="newsAsOf"></span></div>
+  <div class="scroll"><div id="news"></div></div>
+ </div>
+ <div class="main">
+  <div class="col">
+   <div class="panel" style="flex:1.3"><div class="lbl"><span>SETUPS · A / A+</span><span id="setupsN"></span></div><div class="scroll" id="setups"></div></div>
+   <div class="panel" id="gradedP" style="flex:1"><div class="lbl"><span>GRADED · REJECTIONS</span><span id="gradN"></span></div><div class="scroll" id="graded"></div></div>
+  </div>
+  <div class="col">
+   <div class="panel" id="chartP" style="flex:0 0 34%"><div class="lbl"><span>NIFTY 50 · 5M</span><a class="b" id="niftyTv" target="_blank" rel="noreferrer">TradingView ↗</a></div><svg id="chart"></svg></div>
+   <div class="panel" style="flex:1"><div class="lbl"><span><span id="heatT">NIFTY 50 HEAT</span> <span class="dm hs">· vs prev close</span> <button id="heatBtn" class="hbtn">SECTOR</button></span><span id="breadth"></span></div><div class="scroll"><div class="heat" id="heat"></div></div></div>
+  </div>
+  <div class="col">
+   <div class="panel" style="flex:1.2"><div class="lbl"><span>DEMO TRADING (PAPER)</span><span id="paperU"></span></div><div class="scroll" id="paper"></div></div>
+   <div class="panel" id="btstP" style="flex:0 0 auto;max-height:34%"><div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div><div class="scroll" id="btst"></div></div>
+   <div class="panel" style="flex:1"><div class="lbl"><span>MOVERS · LOG</span></div><div class="scroll" id="log"></div></div>
+  </div>
+ </div>
+ <div class="foot"><span id="upd">—</span><span>GitHub data ~30s · tunnel live ho to ~2s · IST · paper/demo only</span></div>
+</div>
+<script src="nl-data.js"></script>
+<script>
+(function(){
+const K=new URLSearchParams(location.search).get("k")||"";
+const api=p=>NL.api(p);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f=(n,d=2)=>n==null||isNaN(n)?"—":Number(n).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sg=(n,d=2)=>n==null?"—":(n>0?"+":"")+f(n,d);
+const cl=v=>v>0?"g":v<0?"p":"dm";
+const tv=s=>"https://www.tradingview.com/chart/?symbol="+encodeURIComponent(s==="NIFTY"?"NSE:NIFTY":"NSE:"+s.replace(/[&-]/g,"_"));
+const lc=(s,opt)=>"chart.html?k="+encodeURIComponent(K)+"&symbol="+encodeURIComponent(s)+(opt?"&tab=option":"");
+const ist=()=>new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour12:false});
+let L={},D=null,lastOk=0,ltpAge=null,quoteAsOf=null;
+$("niftyTv").href=tv("NIFTY");
+function heatBg(p){if(p==null)return"#222";const a=Math.min(1,Math.abs(p)/3)*0.75+0.12;return p>=0?`rgba(0,229,160,${a})`:`rgba(255,45,149,${a})`;}
+function renderLive(){
+ const age=ltpAge==null?null:Math.max(0,ltpAge)+(lastOk?(Date.now()-lastOk)/1000:0);
+ const ok=lastOk&&Date.now()-lastOk<10000&&age!=null&&age<10;
+ const e=$("live");e.className="live "+(ok?"g":"m");e.textContent=(ok?"FRESH POLL ● ":"STALE ● ")+(age==null?"—":Math.round(age)+"s");
 }
-// ---------- GitHub snapshot (branch 'data') ----------
-async function snapViaApi(){const b=await getJ(API+'/branches/data?t='+Date.now(),6000);return getJ(RAW+b.commit.sha+'/snapshot.json',8000);}
-async function probe(from,to_){const tries=[];for(let b=to_;b>=from&&tries.length<15;b--)tries.push(getJ(RAW+'data/snap-'+b+'.json',6000).catch(()=>null));
-  const r=(await Promise.all(tries)).filter(Boolean);r.sort((a,b)=>(b.bucket||0)-(a.bucket||0));return r[0]||null;}
-let lastSnapTry=0,lastApiSnap=0;
-async function loadSnap(force){
-  if(!force&&Date.now()-lastSnapTry<55000)return;lastSnapTry=Date.now();
-  const nowB=Math.floor(Date.now()/60000);let s=null;
-  if(snap&&snap.bucket){s=await probe(snap.bucket+1,nowB-1);}
-  if(!s&&(!snap||(Date.now()-lastApiSnap>300000&&ageMin(snap)>3))){lastApiSnap=Date.now();try{s=await snapViaApi()}catch(e){}}
-  if(!s&&!snap){s=await probe(nowB-15,nowB-1);if(!s){try{s=await getJ(RAW+'data/snapshot.json?t='+Date.now(),8000)}catch(e){}}}
-  if(s&&(!snap||(s.bucket||0)>=(snap.bucket||0))){snap=s;snapHosts=(s.hosts||[]).filter(h=>typeof h==='string'&&h.startsWith('https://'));}
+function renderCounters(){
+ const n=L.NIFTY,v=L.INDIAVIX,pp=(D&&D.paper)||{},day=pp.day||{},u=pp.unrealized||{};
+ const pr=(day.r||0)+(u.r||0),prs=(day.pnl||0)+(u.pnl||0);
+ let h=`<span class="ctr"><span class="k">NIFTY</span><span class="v ${n?cl(n.chg):""}">${n?f(n.ltp):"—"}</span><span class="d ${n?cl(n.chg):""}">${n?sg(n.chg)+" ("+sg(n.pct)+"%)":""}</span></span>`;
+ h+=`<span class="ctr"><span class="k">VIX</span><span class="v b">${v?f(v.ltp):"—"}</span><span class="d ${v?cl(v.pct):""}">${v?sg(v.pct)+"%":""}</span></span>`;
+ h+=`<span class="ctr"><span class="k">P&amp;L</span><span class="v ${cl(pr)}">${sg(pr)}R</span><span class="d ${cl(prs)}">₹${sg(prs,0)}</span></span>`;
+ const _aN=((D&&D.state.setups)||[]).filter(x=>(x.grade==="A"||x.grade==="A+")&&String(x.status||"").toUpperCase()!=="WATCH").length;const _gc=(D&&D.counts)||{};((D&&D.state.counters)||[]).forEach(c=>{c=Object.assign({},c);if(c.k==="GRADED TODAY"&&_gc.graded!=null)c.v=String(_gc.graded);if(c.k==="A / A+")c.v=String(Math.max(_aN,parseInt((_gc.a_or_a_plus!=null?_gc.a_or_a_plus:c.v))||0));h+=`<span class="ctr"><span class="k">${esc(c.k)}</span><span class="v ${c.tone==="pink"?"p":c.tone==="green"?"g":c.tone==="amber"?"a":"b"}">${esc(c.v)}</span></span>`});
+ $("ctrs").innerHTML=h;
 }
-function ageMin(s){if(!s||!s.updated)return 999;return Math.max(0,Math.round((Date.now()-Date.parse(s.updated))/60000));}
-async function toFallback(){
-  if(mode!=='fallback'){mode='fallback';deadSince=deadSince||Date.now();f.style.display='none';f.src='about:blank';cur=null;}
-  if(!snap)m.textContent='Live link abhi band hai, GitHub copy la rahe hain…';
-  await loadSnap(!snap);
-  if(mode!=='fallback')return;
-  if(!snap){m.style.display='flex';m.textContent='Live link abhi band hai aur GitHub copy bhi abhi nahi mili. 20 sec mein dobara try kar rahe hain 🔄';return}
-  render();
+function renderNews(){
+ const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
+ const mk={bullish:["▲","g"],bearish:["▼","p"],neutral:["●","a"]};
+ $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">No news</div>';
 }
-// ---------- render ----------
-const E=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const N=(x,d)=>x==null||x===''?'—':Number(x).toLocaleString('en-IN',{maximumFractionDigits:d==null?2:d});
-const RS=x=>x==null?'—':(x<0?'−':'+')+'₹'+Math.abs(Math.round(x)).toLocaleString('en-IN');
-const RR=x=>x==null?'—':(x<0?'−':'+')+Math.abs(Number(x)).toFixed(2)+'R';
-const cls=x=>x>0?'up':x<0?'dn':'';
-function ist(iso){try{return new Date(iso).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',hour12:false})+' IST'}catch(e){return iso||'—'}}
-function isWatch(s){const st=(s.status||'').toUpperCase();return st==='WATCH'||st==='TRIGGERED_LOWR'}
-function rank(s){const g=(s.grade||'').toUpperCase(),w=isWatch(s);return g==='A+'&&!w?0:g==='A'&&!w?1:2}
-function idx(name,o){o=o||{};return `<div class="pill"><div class="k">${name}</div><div class="v">${N(o.ltp)} <small class="${cls(o.chg)}" style="font-size:12px">${o.chg==null?'':(o.chg>0?'+':'')+N(o.chg)+' ('+(o.pct>0?'+':'')+N(o.pct)+'%)'}</small></div></div>`}
-function setupCard(s){
-  const w=isWatch(s),c=s.closed,g=(s.grade||'').toUpperCase();
-  let badge=w?`<span class="badge g-w">WATCH · ${E(g||'A')}</span>`:`<span class="badge ${g==='A+'?'g-ap':'g-a'}">${E(g)}${c?'':' · '+E(s.status||'')}</span>`;
-  if(c)badge+=`<span class="badge g-c">CLOSED ${E(c.reason||'')} ${RS(c.pnl)} (${RR(c.r)})</span>`;
-  const sq=s.q||{},op=s.option;
-  return `<div class="card${w?' watch':''}${c?' done':''}"><div class="hd"><div><span class="sym">${E(s.symbol)}</span> <span class="${s.side==='LONG'?'up':'dn'}" style="font-weight:700">${E(s.side||'')}</span>${badge}</div><div class="mut" style="font-size:12px">${E(s.time||'')} · LTP <b style="color:#fff">${N(sq.ltp)}</b></div></div>
-  <div class="lv"><div><span>ENTRY</span>${N(s.entry)}</div><div><span>SL</span>${N(s.sl)}</div><div><span>T1</span>${N(s.t1)}${s.t1R!=null?' <small class="mut">'+N(s.t1R)+'R</small>':''}</div><div><span>T2</span>${N(s.t2)}${s.t2R!=null?' <small class="mut">'+N(s.t2R)+'R</small>':''}</div></div>
-  ${op?`<div class="note">Option: <b>${E(op.contract)}</b> · entry ${N(op.entry)} / SL ${N(op.sl)} / T1 ${N(op.t1)} / T2 ${N(op.t2)} · lot ${E(op.lot)}</div>`:''}
-  ${s.note?`<div class="note">${E(s.note)}</div>`:''}</div>`;
+function setupCard(s,watch){
+ const q=L[s.symbol],risk=Math.abs((s.entry||0)-(s.sl||0)),sgn=s.side==="LONG"?1:-1;
+ const st=String(s.status||"").toUpperCase();
+ if(!(+s.t2>0))s=Object.assign({},s,{t2:null});
+ watch=watch||st==="WATCH"||st==="TRIGGERED_LOWR";
+ const lowr=st==="TRIGGERED_LOWR",trig=st==="TRIGGERED";
+ const r=q&&risk?sgn*(q.ltp-s.entry)/risk:null,gc=s.grade==="A+"?"g":"b";
+ let badge;
+ if(lowr) badge=`<span class="badge m" style="border:1px dotted currentColor">TRIGGER · &lt;1R</span>`;
+ else if(trig) badge=`<span class="badge g" style="border:1px solid currentColor">${esc(s.side||"LONG")} ${esc(s.grade||"A")} · TRIGGERED</span>`;
+ else if(watch) badge=`<span class="badge a" style="border:1px solid currentColor">WATCH · ${esc(s.grade||"A")} on 5m close ${(sgn>0?">":"<")}${esc(s.entry)}</span>`;
+ else badge=`<span class="badge ${gc}" style="border:1px solid currentColor">${esc(s.grade||"")}</span>`;
+ const cls=lowr?" lowr":(trig?"":(watch?" watch":""));
+ return `<div class="card${cls}${trig?" triggered":""}"><div class="h"><span><b class="${sgn>0?"g":"p"}">${sgn>0?"▲":"▼"} ${esc(s.symbol)}</b> ${badge} <span class="m">${esc(s.time||"")}</span></span>
+ <span>${q?f(q.ltp):"—"} ${r==null?"":`<b class="${cl(r)}">${r>0?"+":""}${r.toFixed(2)}R</b>`}</span></div>
+ <div class="lv"><span class="m">E <b class="dm">${f(s.entry)}</b></span><span class="m">SL <b class="p">${f(s.sl)}</b></span><span class="m">T1 <b class="g">${f(s.t1)}</b></span>${s.t2?`<span class="m">T2 <b class="g">${f(s.t2)}</b></span>`:""}</div>
+ ${(o=>o&&o.contract?`<div class="lv" style="margin-top:2px"><span class="m">OPT <b class="a">${esc(o.contract)}</b></span><span class="m">E <b class="dm">${f(o.entry)}</b></span><span class="m">SL <b class="p">${f(o.sl)}</b></span><span class="m">T1 <b class="g">${f(o.t1)}</b></span>${o.t2?`<span class="m">T2 <b class="g">${f(o.t2)}</b></span>`:""}</div>`:"")(s.option)}
+ ${s.triggerText||s.note||s.why?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(s.triggerText||s.why||s.note)}</div>`:""}
+ <div class="btns"><a class="btn" href="${lc(s.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${lc(s.symbol,1)}" target="_blank">Option</a><a class="btn" href="${tv(s.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
 }
-function tradeRow(t){return `<tr><td>${E(t.time||'')}</td><td><b>${E(t.symbol)}</b> <span class="${t.side==='LONG'?'up':'dn'}">${E(t.side||'')}</span><br><small class="mut">${E(t.grade||'')} · ${E(t.lots||'')} lot${t.contract?' · '+E(t.contract):''}</small></td><td>${N(t.fill)} → ${t.exit!=null?N(t.exit):'<i class="mut">open</i>'}<br><small class="mut">${E(t.reason||t.status||'')}</small></td><td class="${cls(t.pnl)}"><b>${RS(t.pnl)}</b><br><small>${RR(t.r)}</small></td></tr>`}
-function render(){
-  const s=snap,a=ageMin(s),p=s.paper||{},d=p.day||{},tot=p.total||{};
-  const setups=(s.setups||[]).slice().sort((x,y)=>rank(x)-rank(y)||String(y.time||'').localeCompare(String(x.time||'')));
-  const trades=[...(p.open||[]),...(p.pending||[]),...(p.today||[])];
-  const cnt=(s.counters||[]).map(c=>`<div class="pill"><div class="k">${E(c.k)}</div><div class="v">${E(c.v)}</div></div>`).join('');
-  fb.innerHTML=`<div class="ban${a>10?' old':''}">⚠️ <b>Live link abhi band hai, GitHub copy dikha rahe hain (${a<1?'1 min se kam':a+' min'} purani).</b> Live link wapas aate hi apne aap khul jayega.<br><small>Last update: ${ist(s.updated)} · har 20 sec live link check ho raha hai${FORCE?' · TEST MODE (forceFallback)':''}</small></div>
-  <div class="row">${idx('NIFTY',(s.idx||{}).NIFTY)}${idx('INDIA VIX',(s.idx||{}).INDIAVIX)}</div>
-  <div class="row">${cnt}<div class="pill"><div class="k">DEMO P&L AAJ</div><div class="v ${cls(d.pnl)}">${RS(d.pnl)} <small style="font-size:12px">${RR(d.r)}</small></div></div><div class="pill"><div class="k">DEMO TOTAL</div><div class="v ${cls(tot.pnl)}">${RS(tot.pnl)} <small style="font-size:12px">${RR(tot.r)}</small></div></div></div>
-  <h2>Setups (${setups.length})</h2>${setups.length?setups.map(setupCard).join(''):'<div class="card mut">Abhi koi A/A+ ya near-A WATCH setup nahi hai.</div>'}
-  <h2>Demo trades aaj (${trades.length})</h2>${trades.length?`<div class="card" style="padding:4px 8px"><table><tr><th>Time</th><th>Trade</th><th>Fill → Exit</th><th>P&L</th></tr>${trades.map(tradeRow).join('')}</table></div>`:'<div class="card mut">Aaj abhi tak koi demo trade nahi.</div>'}
-  ${(s.news||[]).length?`<h2>News</h2>`+s.news.map(n=>`<div class="card news"><div class="t">${E(n.time||'')} · ${E(n.tag||'')}</div><b>${E(n.hi||'')}</b><div class="mut">${E(n.impact||'')}</div></div>`).join(''):''}
-  <div class="foot">Prices ${s.src&&s.src.ltp?ist(s.src.ltp):'—'} tak · GitHub copy har ~1 min update hoti hai · paper/demo only</div>`;
-  m.style.display='none';fb.style.display='block';
+function setupRank(s){
+ const g=String(s.grade||"").toUpperCase();
+ const st=String(s.status||"").toUpperCase();
+ const watch=!!s.recheck_only||st==="WATCH"||st==="TRIGGERED_LOWR";
+ if(g==="A+"&&!watch) return 0;
+ if(g==="A"&&!watch) return 1;
+ if(g==="A+") return 2;
+ if(g==="A") return 3;
+ return 4;
 }
-if(!k)m.textContent='Link mein ?k=... token missing hai';
-else{cycle();setInterval(()=>{if(mode==='fallback')return;cycle()},5000);
-  setInterval(()=>{if(mode==='fallback'){cycle()}},20000);
-  setInterval(()=>{if(mode==='fallback'){loadSnap().then(()=>{if(mode==='fallback'&&snap)render()})}},60000);
-  setInterval(()=>{if(mode==='fallback'&&snap)render()},30000);}
+function renderSetups(){
+ const st=(D&&D.state)||{};const live=((D&&D.setups&&D.setups.setups)||[]);
+ const seen=new Set(),list=[];
+ [...live,...(st.setups||[]),...(st.watch||[])].forEach(s=>{if(!s||!s.symbol)return;if(s.recheck_only||s.kind==="reject_recheck")return;if(!seen.has(s.symbol+s.side)){seen.add(s.symbol+s.side);list.push(s)}});
+ list.sort((a,b)=>{const d=setupRank(a)-setupRank(b);return d||String(b.time||"").localeCompare(String(a.time||""))});
+ const nLive=list.filter(s=>setupRank(s)<=1).length,nWatch=list.length-nLive;
+ $("setupsN").textContent=nLive+" live · "+nWatch+" watch";
+ $("setups").innerHTML=list.map(s=>setupCard(s,!!s.recheck_only||s.kind==="reject_recheck"||/WATCH|TRIGGERED_LOWR/.test(String(s.status||"").toUpperCase()))).join("")||'<div class="m" style="padding:6px 0">No A/A+ setups yet — waiting for structure.</div>';
+}
+function renderAudit(){
+ const a=(D&&D.audit)||{},iss=(a.issues||[]).filter(i=>!i.handled);
+ const el=$("auditStrip");
+ if(!iss.length){el.className="";el.innerHTML="";return}
+ el.className="show";
+ el.innerHTML='<span class="ah">⚠ CHECK · '+iss.length+'</span>'+iss.slice(0,6).map(i=>'<div class="ai">'+(i.severity==="high"?"🔴":"🟡")+" "+esc(i.symbol?i.symbol+" · ":"")+esc(i.msg_hinglish||"")+"</div>").join("");
+}
+function renderGraded(){
+ const g=(D&&D.graded)||[],acts=((D&&D.state.actions)||[]);
+ const rows=g.length?g.map(x=>({t:x.time,a:String(x.grade||"").toUpperCase(),s:x.symbol,m:x.why})):acts.map(x=>({t:x.time,a:x.action,s:x.symbol,m:x.message}));
+ $("gradN").textContent=rows.length+" rows";
+ $("graded").innerHTML=rows.map(x=>{const c=/REJ/.test(x.a)?"p":/A/.test(x.a)?"g":"a";return `<div class="row"><span class="m">${esc(x.t)}</span><span class="badge ${c}">${esc(x.a)}</span><a class="b" href="${tv(x.s)}" target="_blank" rel="noreferrer">${esc(x.s)}</a><span class="w">${esc(x.m)}</span></div>`}).join("")||'<div class="m">—</div>';
+}
+let heatMode=(new URLSearchParams(location.search).get("heat"))||localStorage.getItem("heatMode")||"nifty";if(heatMode!=="sector")heatMode="nifty";
+let SECT=null;
+$("heatBtn").onclick=()=>{heatMode=heatMode==="sector"?"nifty":"sector";localStorage.setItem("heatMode",heatMode);renderHeat();if(heatMode==="sector")loadSect().then(renderHeat)};
+async function loadSect(){try{const r=await api("/api/sectors");if(r&&r.sectors&&r.sectors.length)SECT=r;else if(SECT)SECT.err=(r&&r.err)||"no data"}catch(e){if(SECT)SECT.err="fetch failed"}}
+function renderSect(){
+ $("heatT").textContent="SECTOR HEAT";$("heatBtn").textContent="NIFTY 50";
+ const a=((SECT&&SECT.sectors)||[]).filter(x=>x.pct!=null).sort((x,y)=>y.pct-x.pct);
+ const up=a.filter(x=>x.pct>0).length;$("breadth").innerHTML=a.length?`<span class="g">${up}↑</span> <span class="p">${a.length-up}↓</span> <span class="dm">${esc(SECT.nse_ts||SECT.fetched||"")}${SECT.err?" · stale":""}</span>`:"";
+ $("heat").innerHTML=a.map(x=>`<a class="tile" style="background:${heatBg(x.pct)}" href="https://www.tradingview.com/search/?query=${encodeURIComponent(x.name)}" target="_blank" rel="noreferrer"><b>${esc(x.name.replace(/^NIFTY /,""))}</b><br>${f(x.last)} ${sg(x.pct)}%</a>`).join("")||'<div class="m">sector data unavailable — retrying</div>';
+}
+function renderHeat(){
+ if(heatMode==="sector")return renderSect();
+ $("heatT").textContent="NIFTY 50 HEAT";$("heatBtn").textContent="SECTOR";
+ const sec=((D&&D.state.sectors)||{}),qs=Object.values(L).filter(q=>q&&q.pct!=null&&sec[q.symbol]);
+ const by={};qs.forEach(q=>(by[sec[q.symbol]]=by[sec[q.symbol]]||[]).push(q));
+ const groups=Object.entries(by).map(([n,a])=>({n,a:a.sort((x,y)=>y.pct-x.pct),avg:a.reduce((s,x)=>s+x.pct,0)/a.length})).sort((x,y)=>y.avg-x.avg);
+ const up=qs.filter(q=>q.pct>0).length;$("breadth").innerHTML=`<span class="g">${up}↑</span> <span class="p">${qs.length-up}↓</span>`;
+ $("heat").innerHTML=groups.map(g=>`<div class="sec">${esc(g.n)} <span class="${cl(g.avg)}">${sg(g.avg)}%</span></div>`+g.a.map(q=>`<a class="tile" style="background:${heatBg(q.pct)}" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b><br>${f(q.ltp)} ${sg(q.pct)}%</a>`).join("")).join("");
+}
+function renderBtst(){
+ const b=(D&&D.state&&D.state.btst)||{},p=b.picks||[];$("btstN").textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
+ $("btst").innerHTML=p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
+ <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
+ ${x.option?`<div class="lv" style="grid-template-columns:1fr"><span class="m">OPT <b class="a">${esc(x.option)}</b> ${esc(x.prem||"")}${x.lot?" · lot "+esc(x.lot):""}${x.risk_1lot?" · risk ₹"+esc(x.risk_1lot)+"/lot":""}</span></div>`:""}
+ ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
+ <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
+}
+function renderPaper(){
+ const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
+ $("paperU").innerHTML=`open <span class="${cl(u.pnl)}">₹${sg(u.pnl,0)}</span>`;
+ let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">BOOKED <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">TOTAL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`;
+ const op=p.open||[],td=p.today||[];
+ h+=`<table><tr><th>OPEN</th><th>LOTS</th><th>FILL</th><th>LTP</th><th>SL</th><th>T1</th><th>T2</th><th>uPnL</th></tr>`+(op.map(o=>{const c2c=o.c2c||o.cost_moved||o.t1_done;const lotsLbl=`${o.qtyOpenLots??o.lots??1}${c2c?' <span class="a">C2C</span>':''}`;return `<tr><td><span class="${o.side==="LONG"?"g":"p"}">${o.side==="LONG"?"▲":"▼"}</span> ${esc(o.mode==="option"&&o.contract?o.contract.replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):o.symbol)}</td><td>${lotsLbl}</td><td>${f(o.fill)}</td><td>${f(o.ltp)}</td><td class="p">${f(o.sl)}${c2c?' <span class="a">C2C</span>':''}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="${cl(o.uPnl)}">₹${sg(o.uPnl,0)} ${o.uR!=null?sg(o.uR)+"R":""}</td></tr>`}).join("")||`<tr><td colspan="8" class="m">no open positions</td></tr>`)+`</table>`;
+ if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`}).join("")+`</table>`;
+ $("paper").innerHTML=h;
+}
+function renderLog(){
+ const qs=Object.values(L).filter(q=>q&&q.pct!=null&&q.symbol!=="NIFTY"&&q.symbol!=="INDIAVIX"&&!/\d(CE|PE)$/.test(q.symbol)).sort((a,b)=>b.pct-a.pct);
+ const ch=q=>`<a class="tile" style="background:${heatBg(q.pct)};display:inline-block;margin:0 3px 3px 0" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b> ${sg(q.pct)}%</a>`;
+ $("log").innerHTML=`<div>${qs.slice(0,4).map(ch).join("")}</div><div>${qs.slice(-4).reverse().map(ch).join("")}</div>`+((D&&D.state.log)||[]).map(l=>`<div class="dm" style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l)}</div>`).join("");
+}
+function renderChart(bars){
+ const svg=$("chart"),W=svg.clientWidth||600,H=svg.clientHeight||150;if(!bars||!bars.length){svg.innerHTML="";return}
+ const today=bars[bars.length-1].t.slice(0,10);let b=bars.filter(x=>x.t.slice(0,10)===today);if(b.length<6)b=bars.slice(-40);
+ const pc=L.NIFTY&&L.NIFTY.prev_close;let lo=Math.min(...b.map(x=>x.l)),hi=Math.max(...b.map(x=>x.h));if(pc){lo=Math.min(lo,pc);hi=Math.max(hi,pc)}
+ const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;const R=46,cw=(W-R)/Math.max(b.length,20),y=v=>(hi-v)/(hi-lo)*(H-14);
+ let s="";b.forEach((x,i)=>{const cx=i*cw+cw/2,up=x.c>=x.o,c=up?"#00E5A0":"#FF2D95";s+=`<line x1="${cx}" x2="${cx}" y1="${y(x.h)}" y2="${y(x.l)}" stroke="${c}"/><rect x="${cx-cw*0.35}" width="${Math.max(1,cw*0.7)}" y="${y(Math.max(x.o,x.c))}" height="${Math.max(1,Math.abs(y(x.o)-y(x.c)))}" fill="${c}"/>`;if(i%Math.ceil(b.length/6)===0)s+=`<text x="${cx}" y="${H-2}" fill="#6B7280" font-size="9" text-anchor="middle">${x.t.slice(11,16)}</text>`});
+ for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4;s+=`<text x="${W-2}" y="${y(v)+3}" fill="#6B7280" font-size="9" text-anchor="end">${f(v,0)}</text><line x1="0" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#1F2430"/>`}
+ if(pc)s+=`<line x1="0" x2="${W-R}" y1="${y(pc)}" y2="${y(pc)}" stroke="#F5A623" stroke-dasharray="3 3"/><text x="2" y="${y(pc)-2}" fill="#F5A623" font-size="9">prev ${f(pc)}</text>`;
+ const last=b[b.length-1];s+=`<rect x="${W-R+1}" y="${y(last.c)-7}" width="${R-2}" height="13" fill="${L.NIFTY&&L.NIFTY.chg<0?"#FF2D95":"#00E5A0"}"/><text x="${W-3}" y="${y(last.c)+3}" fill="#000" font-size="9" text-anchor="end">${f(last.c,0)}</text>`;
+ svg.setAttribute("viewBox",`0 0 ${W} ${H}`);svg.innerHTML=s;
+}
+let bars=null,inFlight=false,nextPoll=null,failures=0,lastChartPoll=0,lastSectorPoll=0;
+const TZS=19800000; // bars are true UTC epoch; shift to IST for labels
+async function refresh(){
+ if(inFlight||document.hidden||navigator.onLine===false)return;
+ inFlight=true;
+ try{
+ const stamp=Date.now(),chartDue=stamp-lastChartPoll>=10000,sectorDue=heatMode==="sector"&&stamp-lastSectorPoll>=30000;
+ if(chartDue)lastChartPoll=stamp;if(sectorDue)lastSectorPoll=stamp;
+ const [,l,d,c]=await Promise.allSettled([sectorDue?loadSect():null,api("/api/ltp"),api("/api/dash"),chartDue?api("/api/candles?symbol=NIFTY&tf=5m"):null]);
+ failures=(l.status==="rejected"&&d.status==="rejected")?Math.min(failures+1,4):0;
+ if(l.status==="fulfilled"){L=l.value.quotes||{};ltpAge=l.value.age_s;quoteAsOf=l.value.updated;lastOk=Date.now()}
+ if(d.status==="fulfilled")D=d.value;
+ if(c.status==="fulfilled"&&c.value)bars=(c.value.bars||[]).map(x=>{const dt=new Date(x.time*1000+TZS);return {t:dt.toISOString().slice(0,16).replace("T"," "),o:x.open,h:x.high,l:x.low,c:x.close}});
+ for(const fn of [renderCounters,renderNews,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
+ renderLive();$("upd").textContent="poll "+ist()+" IST · quotes asof "+(quoteAsOf?quoteAsOf.slice(11,19)+" IST":"unavailable")+(D&&D.graded_last_run?" · graded "+D.graded_last_run.slice(11):"");
+ }finally{inFlight=false}
+}
+async function pollLoop(){clearTimeout(nextPoll);try{await refresh()}catch(e){console.error(e);failures=Math.min(failures+1,4)}finally{nextPoll=setTimeout(pollLoop,document.hidden||navigator.onLine===false?15000:Math.min(30000,2000*Math.pow(2,failures)))}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){clearTimeout(nextPoll);if(!inFlight)pollLoop()}});
+window.addEventListener("online",()=>{clearTimeout(nextPoll);if(!inFlight)pollLoop()});
+function renderSrc(){const b=NL.badgeHTML(),e=$("srcBadge");e.className="srcb "+b.cls;e.innerHTML=b.html}
+NL.onChange(()=>{renderSrc();if(!inFlight){clearTimeout(nextPoll);pollLoop()}});
+pollLoop();setInterval(renderLive,1000);setInterval(renderSrc,1000);renderSrc();
+window.addEventListener("resize",()=>renderChart(bars));
+})();
 </script></body></html>
