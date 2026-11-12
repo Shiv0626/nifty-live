@@ -123,9 +123,11 @@ function renderCounters(){
  $("ctrs").innerHTML=h;
 }
 function renderNews(){
- const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
+ const st=(D&&D.state)||{};$("newsAsOf").textContent="last 1 hr";
  const mk={bullish:["▲","g"],bearish:["▼","p"],neutral:["●","a"]};
- $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">No news</div>';
+ const _now=new Date(Date.now()+(330+new Date().getTimezoneOffset())*60000),_nm=_now.getHours()*60+_now.getMinutes();
+ const _nl=(st.news||[]).filter(n=>{if(["RESULTS","BTST","SESSION"].includes(String(n.tag||"").toUpperCase()))return false;if(n.date&&n.date!==_now.toISOString().slice(0,10)&&n.date!==`${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,"0")}-${String(_now.getDate()).padStart(2,"0")}`)return false;const m=/^(\d{1,2}):(\d{2})/.exec(String(n.time||""));if(!m)return false;const a=_nm-(+m[1]*60+ +m[2]);return a>=0&&a<=60});
+ $("news").innerHTML=_nl.map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(String(n.source||"").slice(0,40))}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">Pichhle 1 ghante me koi news nahi</div>';
 }
 function setupCard(s,watch){
  const q=L[s.symbol],risk=Math.abs((s.entry||0)-(s.sl||0)),sgn=s.side==="LONG"?1:-1;
