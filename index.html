@@ -115,7 +115,7 @@ function renderLive(){
 }
 function renderCounters(){
  const n=L.NIFTY,v=L.INDIAVIX,pp=(D&&D.paper)||{},day=pp.day||{},u=pp.unrealized||{};
- const pr=(day.r||0)+(u.r||0),prs=(day.pnl||0)+(u.pnl||0);
+ const pr=(day.r||0),prs=(day.pnl||0);/* booked only (was +unrealized) */
  let h=`<span class="ctr"><span class="k">NIFTY</span><span class="v ${n?cl(n.chg):""}">${n?f(n.ltp):"—"}</span><span class="d ${n?cl(n.chg):""}">${n?sg(n.chg)+" ("+sg(n.pct)+"%)":""}</span></span>`;
  h+=`<span class="ctr"><span class="k">VIX</span><span class="v b">${v?f(v.ltp):"—"}</span><span class="d ${v?cl(v.pct):""}">${v?sg(v.pct)+"%":""}</span></span>`;
  h+=`<span class="ctr"><span class="k">P&amp;L</span><span class="v ${cl(pr)}">${sg(pr)}R</span><span class="d ${cl(prs)}">₹${sg(prs,0)}</span></span>`;
@@ -210,7 +210,7 @@ function renderBtst(){
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
- $("paperU").innerHTML=`open <span class="${cl(u.pnl)}">₹${sg(u.pnl,0)}</span>`;
+ $("paperU").innerHTML="";/* user rule 11 Nov: no open/unrealised P&L; legacy: open ₹${u.pnl} */
  let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">BOOKED <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">TOTAL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`;
  const op=p.open||[],td=p.today||[];
  h+=`<table><tr><th>OPEN</th><th>LOTS</th><th>FILL</th><th>LTP</th><th>SL</th><th>T1</th><th>T2</th><th>STATUS</th></tr>`+(op.map(o=>{const c2c=o.c2c||o.cost_moved||o.t1_done;const lotsLbl=`${o.qtyOpenLots??o.lots??1}${c2c?' <span class="a">C2C</span>':''}`;return `<tr><td><span class="${o.side==="LONG"?"g":"p"}">${o.side==="LONG"?"▲":"▼"}</span> ${esc(o.mode==="option"&&o.contract?o.contract.replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):o.symbol)}</td><td>${lotsLbl}</td><td>${f(o.fill)}</td><td>${f(o.ltp)}</td><td class="p">${f(o.sl)}${c2c?' <span class="a">C2C</span>':''}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="m">open · P&amp;L on SL/TP</td></tr>`}).join("")||`<tr><td colspan="8" class="m">no open positions</td></tr>`)+`</table>`;
