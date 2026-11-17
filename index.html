@@ -65,6 +65,9 @@ html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
 #iceSig .iceSigH{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:baseline;margin-bottom:3px;min-width:0}
 #iceSig .iceSigH>span:first-child{color:#3DDBD9;letter-spacing:.12em;font-size:9px}
 #iceSig .stats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal}
+#iceSig table{width:100%;min-width:0;max-width:100%}
+#iceSig td, #iceSig th{white-space:nowrap}
+#iceSig td:nth-child(3),#iceSig th:nth-child(3){white-space:normal;overflow-wrap:anywhere}
 #iceSigSub{color:#3DDBD9;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
 #iceSig .iceSkip{margin:2px 0 8px;font-size:11px;line-height:1.35}
 #iceSig .iceSkipRow{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);color:var(--muted)}
@@ -360,15 +363,73 @@ function iceSkipRow(r){
  const extra=/PREMIUM_MOVE_TOO_SMALL/.test(raw)&&raw.length>24?` <span class="m">${esc(raw.replace(/^PREMIUM_MOVE_TOO_SMALL\s*/,""))}</span>`:"";
  return `<div class="iceSkipRow st-SKIPPED"><span class="iceSkipT">${esc(r.time_ist||"")}</span><b>${esc(r.symbol||"")}</b> ${esc(r.direction||"")} · ${esc(iceSkipReason(r))}${extra}</div>`;
 }
+function iceNum(n,d){const x=Number(n);return n==null||n===""||isNaN(x)?"—":f(x,d)}
+function iceWr(v){const x=Number(v);if(v==null||v===""||isNaN(x))return "—";return (Math.abs(x-Math.round(x))<1e-9?String(Math.round(x)):x.toFixed(1))+"%"}
+function iceExitPx(r){
+ const x1=r.lot1_premium_exit, x2=r.lot2_premium_exit, ltp=r.premium_ltp, px=r.premium_exit;
+ const a=x1!=null?iceNum(x1,2):"";
+ const b=x2!=null?iceNum(x2,2):"";
+ if(a&&b) return a===b?a:a+"/"+b;
+ if(a&&ltp!=null) return a+" / ltp "+iceNum(ltp,2);
+ if(b) return b;
+ if(ltp!=null) return "ltp "+iceNum(ltp,2);
+ if(px!=null) return iceNum(px,2);
+ return "—";
+}
+function iceRowPnl(r){
+ const closed=String(r.status||"").toUpperCase()==="CLOSED";
+ const v=closed?(r.pnl!=null?r.pnl:r.upnl):(r.upnl!=null?r.upnl:r.pnl);
+ return v==null||isNaN(Number(v))?null:Number(v);
+}
+function iceRowR(r){
+ const closed=String(r.status||"").toUpperCase()==="CLOSED";
+ const v=closed?(r.r!=null?r.r:r.uR):(r.uR!=null?r.uR:r.r);
+ return v==null||isNaN(Number(v))?null:Number(v);
+}
+function iceRowWhy(r){
+ const st=String(r.status||"");
+ const a=r.lot1_exit_reason, b=r.lot2_exit_reason;
+ if(r.outcome) return st+(r.backfill?" backfill":"")+" · "+r.outcome;
+ if(a&&b) return st+" · "+a+(a===b?"":"+"+b);
+ if(a) return st+" · L1 "+a+(r.lot2_open?" · L2 open":"");
+ return st||"—";
+}
+function iceBookTables(sig){
+ const rows=(sig.rows||[]).filter(r=>!r.backfill && /^(OPEN|T1_DONE|CLOSED)$/.test(String(r.status||"")));
+ const open=rows.filter(r=>r.status!=="CLOSED");
+ const closed=rows.filter(r=>r.status==="CLOSED");
+ const tr=r=>{
+  const dir=r.direction||"—";
+  const lots=(r.lots||2)+(r.lot?"×"+r.lot:"");
+  const pnl=iceRowPnl(r), rr=iceRowR(r);
+  const pn=pnl==null?"—":("₹"+sg(pnl,0));
+  const rs=rr==null?"—":sg(rr,2)+"R";
+  return `<tr><td><span class="${/SELL/i.test(dir)?"p":"g"}">${/SELL/i.test(dir)?"▼":"▲"}</span> ${esc(r.symbol||"")}</td><td>${esc(dir)}</td><td style="white-space:normal">${esc(r.contract||"—")}</td><td>${esc(lots)}</td><td>${r.premium_entry==null?"—":iceNum(r.premium_entry,2)}</td><td>${iceExitPx(r)}</td><td class="${pnl==null?"dm":cl(pnl)}">${pn}</td><td class="${rr==null?"dm":cl(rr)}">${rs}</td><td>${esc(iceRowWhy(r))}</td></tr>`;
+ };
+ const th=`<tr><th>SYMBOL</th><th>SIDE</th><th>OPTION</th><th>LOTS</th><th>ENTRY</th><th>EXIT</th><th>₹ P&amp;L</th><th>R</th><th>STATUS</th></tr>`;
+ let h=`<div class="aaSub">DEMO TRADES · this book's P&amp;L (option premium)</div>`;
+ h+=`<table>${th}<tr><th colspan="9" class="m" style="padding-top:4px">OPEN</th></tr>`+(open.map(tr).join("")||`<tr><td colspan="9" class="m">no open positions</td></tr>`)+`</table>`;
+ if(closed.length) h+=`<table style="margin-top:4px">${th}<tr><th colspan="9" class="m" style="padding-top:4px">CLOSED</th></tr>`+closed.map(tr).join("")+`</table>`;
+ return h;
+}
+function iceStatsBlock(sig){
+ const st=sig.stats||{}, all=st.all||{}, tod=st.today||{}, bf=st.backfill_excluded||{};
+ const closed=tod.trades||0, open=st.open_now||0;
+ const tp=tod.total_pnl, tr=tod.total_r, ap=all.total_pnl, ar=all.total_r;
+ let h=`<div class="stats" id="iceStats">today <b class="${cl(tp)}">₹${sg(tp,0)} / ${sg(tr,2)}R</b> · closed ${closed} · open ${open} · win ${iceWr(tod.win_rate)} (${closed}) · all <b class="${cl(ap)}">₹${sg(ap,0)} / ${sg(ar,2)}R</b></div>`;
+ h+=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">TODAY <b class="${cl(tp)}">₹${sg(tp,0)} / ${sg(tr,2)}R</b></span><span class="m">CLOSED / OPEN <b>${closed} / ${open}</b></span><span class="m">ALL <b class="${cl(ap)}">₹${sg(ap,0)} / ${sg(ar,2)}R</b></span><span class="m">WIN <b class="a">${iceWr(tod.win_rate)} (${tod.wins!=null?tod.wins+"W · ":""}${closed})</b></span></div>`;
+ const bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
+ if(bfN) h+=`<div class="m" style="margin:2px 0 4px">backfill excluded: ${bf.closed_trades||0} trades · ₹${sg(bf.total_pnl,0)} / ${sg(bf.total_r,2)}R (not in totals above)</div>`;
+ if(all.premium_na_trades) h+=`<div class="m">${all.premium_na_trades} premium n/a (excluded from ₹ totals)</div>`;
+ h+=iceBookTables(sig);
+ return h;
+}
 function renderIcebergSignals(sig){
  sig=sig||{};
- const st=sig.stats||{}, all=st.all||{}, tod=st.today||{};
  const armed=sig.armed||[];
  const rows=sig.rows||[];
  const skipped=sig.skipped_today||[];
- const bf=st.backfill_excluded||{}, bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
- const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>
-  <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.premium_trades?` · ₹${sg(all.total_pnl,0)} premium`:""}${all.premium_na_trades?` · ${all.premium_na_trades} premium n/a`:""}${bfN?` · ${bfN} backfill excluded from live stats`:""}</div>`;
+ const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>`+iceStatsBlock(sig);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
  if(!armed.length) body+=`<div class="m">Koi armed setup nahi.</div>`;
@@ -407,7 +468,7 @@ function renderIceberg(){
 function renderNews(){
  const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
  const mk={bullish:["▲","g"],bearish:["▼","p"],neutral:["●","a"]};
- $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">No news</div>';
+ $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">अभी कोई खबर नहीं</div>';
 }
 function renderNewsMovers(){
  const st=(D&&D.state)||{}, mv=st.news_movers||{}, rows=mv.rows||[];
@@ -415,7 +476,7 @@ function renderNewsMovers(){
  if(nEl) nEl.innerHTML=`<span class="nmInfo">INFO ONLY</span> · ${rows.length} names`+(mv.as_of||st.news_movers_as_of?" · as of "+esc(mv.as_of||st.news_movers_as_of):"");
  const box=$("newsMovers");
  if(!box) return;
- if(!rows.length){box.innerHTML='<div class="m">No off-WATCH F&amp;O name with fresh news and a &gt;1% move.</div>';return;}
+ if(!rows.length){box.innerHTML='<div class="m">ताज़ा खबर और &gt;1% मूव वाला कोई ऑफ-WATCH F&amp;O नाम नहीं।</div>';return;}
  box.innerHTML=rows.slice(0,15).map(r=>{
   const pct=Number(r.pct), since=r.pct_since_news;
   const sinceTxt=(since==null||since===""||isNaN(Number(since)))?"":` · since news ${sg(Number(since))}%`;
@@ -424,10 +485,10 @@ function renderNewsMovers(){
 }
 function stockNewsHtml(s){
  const bag=((D&&D.state&&D.state.stock_news)||{}),rec=bag[s.symbol]||s.news||null;
- if(!rec) return `<div class="snews m">NEWS · fetching…</div>`;
+ if(!rec) return `<div class="snews m">समाचार · ला रहे हैं…</div>`;
  const items=rec.items||[];
  const asof=rec.as_of||((D&&D.state&&D.state.stock_news_as_of)||"");
- if(!items.length) return `<div class="snews m">NEWS · no fresh headline${asof?" · as of "+esc(asof):""}</div>`;
+ if(!items.length) return `<div class="snews m">समाचार · कोई नई हेडलाइन नहीं${asof?" · as of "+esc(asof):""}</div>`;
  return `<div class="snews">${items.slice(0,2).map(n=>`<div class="snewsL"><span class="nmeta">${esc(n.time||"")} · ${esc(n.source||"")}</span><div class="snewsH">${esc(n.hi||n.headline||"")}</div></div>`).join("")}</div>`;
 }
 function setupCard(s,watch){
