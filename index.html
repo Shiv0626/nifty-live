@@ -58,6 +58,7 @@ a{color:inherit;text-decoration:none}
 #iceSig td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap;vertical-align:baseline}
 #iceSig .buy{color:var(--green)}#iceSig .sell{color:var(--pink)}
 #iceSig .st-ARMED{color:var(--amber)}#iceSig .st-OPEN{color:var(--green)}#iceSig .st-T1_DONE{color:var(--amber)}#iceSig .st-CLOSED{color:var(--dim)}#iceSig .st-SKIPPED,.st-EXPIRED,.st-INVALID{color:var(--muted)}
+#iceSig .bf{color:var(--amber);font-size:8px;letter-spacing:.08em;margin-left:4px}
 #iceSigWrap{overflow-x:auto;overflow-y:visible;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
 @media (max-width:900px){#auditStrip{max-height:96px}}
 .card .h{display:flex;justify-content:space-between;align-items:center;gap:6px}
@@ -202,7 +203,7 @@ function iceSigTable(rows, cols){
   const rr=r.r!=null?sg(Number(r.r),2)+"R":"—";
   const pn=r.pnl!=null?("₹"+sg(Number(r.pnl),0)):"";
   const sltxt=(st==="T1_DONE"&&r.sl!=null)?(String(r.sl)+" cost"):(r.sl??"—");
-  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}</td><td>${esc(rr)}${pn?" "+esc(pn):""}${pnl?` <span class="m">${esc(pnl)}</span>`:""}</td></tr>`;
+  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}</td><td>${esc(rr)}${pn?" "+esc(pn):""}${pnl?` <span class="m">${esc(pnl)}</span>`:""}</td></tr>`;
  }).join("");
  return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
 }
@@ -211,8 +212,9 @@ function renderIcebergSignals(sig){
  const st=sig.stats||{}, all=st.all||{}, tod=st.today||{};
  const armed=sig.armed||[];
  const rows=sig.rows||[];
+ const bf=st.backfill_excluded||{}, bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
  const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>
-  <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.total_pnl!=null?" · ₹"+sg(all.total_pnl,0):""}${all.spot_r_trades?` · ${all.spot_r_trades} spot-R`:""}${all.premium_trades?` · ${all.premium_trades} premium`:""}</div>`;
+  <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.total_pnl!=null?" · ₹"+sg(all.total_pnl,0):""}${all.spot_r_trades?` · ${all.spot_r_trades} spot-R`:""}${all.premium_trades?` · ${all.premium_trades} premium`:""}${bfN?` · ${bfN} backfill excluded from live stats`:""}</div>`;
  const cols=[["TIME IST"],["SYMBOL"],["SIDE"],["LEVEL"],["ENTRY"],["SL"],["T1"],["T2"],["STATUS"],["R / P&L"]].map(x=>x);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
