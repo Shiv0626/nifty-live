@@ -35,7 +35,7 @@ a{color:inherit;text-decoration:none}
 #auditStrip.show{display:block}
 #auditStrip .ah{color:#ff6b8a;font-weight:700;font-size:10px;letter-spacing:.12em;margin-right:8px}
 #auditStrip .ai{font-size:11px;color:#ffc9d4;margin:2px 0;font-family:var(--hi);line-height:1.25}
-#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922;max-width:100%;min-width:0;box-sizing:border-box}
+#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922;max-width:100%;min-width:0;box-sizing:border-box;max-height:44vh}
 #icebergP .lbl{flex-wrap:wrap;align-items:baseline;min-width:0;max-width:100%}
 #icebergP .lbl>span:first-child{color:#3DDBD9;letter-spacing:.14em}
 #icebergN{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:right}
@@ -48,6 +48,17 @@ a{color:inherit;text-decoration:none}
 #iceberg .conf-high{color:var(--green)}#iceberg .conf-medium{color:var(--amber)}#iceberg .conf-low{color:var(--dim)}
 #iceberg .nx{font-weight:700;color:#3DDBD9}
 #iceberg .info{color:#3DDBD9;font-size:9px;letter-spacing:.08em}
+#iceSig{margin-top:8px;padding-top:6px;border-top:1px solid #1F5E5C;min-width:0;max-width:100%;box-sizing:border-box}
+#iceSig .iceSigH{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:baseline;margin-bottom:3px;min-width:0}
+#iceSig .iceSigH>span:first-child{color:#3DDBD9;letter-spacing:.12em;font-size:9px}
+#iceSig .stats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal}
+#iceSigSub{color:#3DDBD9;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
+#iceSig table{width:max-content;min-width:100%;border-collapse:collapse;font-size:10px;box-sizing:border-box}
+#iceSig th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px 4px;letter-spacing:.08em;white-space:nowrap}
+#iceSig td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap;vertical-align:baseline}
+#iceSig .buy{color:var(--green)}#iceSig .sell{color:var(--pink)}
+#iceSig .st-ARMED{color:var(--amber)}#iceSig .st-OPEN{color:var(--green)}#iceSig .st-T1_DONE{color:var(--amber)}#iceSig .st-CLOSED{color:var(--dim)}#iceSig .st-SKIPPED,.st-EXPIRED,.st-INVALID{color:var(--muted)}
+#iceSigWrap{overflow-x:auto;overflow-y:visible;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
 @media (max-width:900px){#auditStrip{max-height:96px}}
 .card .h{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .lv{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 6px;margin:4px 0;font-size:11px}
@@ -92,18 +103,18 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
  #newsMoversP .scroll,#newsMoversWrap{overflow-x:hidden!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
  #newsMoversP .nmRow{grid-template-columns:minmax(64px,1fr) 52px;gap:3px 6px}
  #newsMoversP .nmH{grid-column:1/-1;font-size:12px}
- #icebergP{overflow:hidden!important;max-height:220px!important;width:100%;max-width:100%;min-width:0}
- #icebergP .scroll,#icebergWrap{overflow-x:auto!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
+ #icebergP{overflow:hidden!important;max-height:360px!important;width:100%;max-width:100%;min-width:0}
+ #icebergP .scroll,#icebergWrap,#iceSigWrap{overflow-x:auto!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
 }
 @media (max-width:420px){
  #newsMoversP{max-height:200px!important;padding:6px}
  #newsMoversWrap{max-height:150px}
  #newsMoversP .nmH{font-size:11px}
- #icebergP{max-height:200px!important;padding:6px}
- #iceberg table{font-size:9px}
- #iceberg th,#iceberg td{padding:2px 3px;font-size:8px;letter-spacing:0}
- #iceberg .info{font-size:8px;letter-spacing:0}
- #icebergWrap{max-height:160px}
+ #icebergP{max-height:340px!important;padding:6px}
+ #iceberg table,#iceSig table{font-size:9px}
+ #iceberg th,#iceberg td,#iceSig th,#iceSig td{padding:2px 3px;font-size:8px;letter-spacing:0}
+ #iceberg .info,#iceSig .iceSigH,#iceSig .stats,#iceSigSub{font-size:8px;letter-spacing:0}
+ #icebergWrap{max-height:none}
 }
 
 .srcb{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:5px;border:1px solid currentColor;white-space:nowrap}
@@ -123,7 +134,7 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
   <div class="lbl"><span>NEWS MOVERS · not on WATCH</span><span id="newsMoversN"></span></div>
   <div class="scroll" id="newsMoversWrap"><div id="newsMovers"></div></div>
  </div>
- <div class="panel" id="icebergP" style="flex:0 0 auto;max-height:26vh">
+ <div class="panel" id="icebergP" style="flex:0 0 auto;max-height:44vh">
   <div class="lbl"><span>ICEBERG DETECTIONS</span><span id="icebergN"></span></div>
   <div class="scroll" id="iceberg"></div>
  </div>
@@ -180,6 +191,38 @@ function iceTime(t){
  if(m)return m[1];
  try{return new Date(s).toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour12:false})}catch(e){return s}
 }
+function iceSigTable(rows, cols){
+ if(!rows||!rows.length)return "";
+ const th=cols.map(c=>`<th>${c[0]}</th>`).join("");
+ const body=rows.map(r=>{
+  const dir=String(r.direction||"");
+  const dc=/SELL/i.test(dir)?"sell":(/BUY/i.test(dir)?"buy":"dm");
+  const st=String(r.status||"");
+  const pnl=r.pnl_label||(r.pnl_mode==="option_premium"?"option premium":(r.r!=null?"SPOT R":""));
+  const rr=r.r!=null?sg(Number(r.r),2)+"R":"—";
+  const pn=r.pnl!=null?("₹"+sg(Number(r.pnl),0)):"";
+  const sltxt=(st==="T1_DONE"&&r.sl!=null)?(String(r.sl)+" cost"):(r.sl??"—");
+  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}</td><td>${esc(rr)}${pn?" "+esc(pn):""}${pnl?` <span class="m">${esc(pnl)}</span>`:""}</td></tr>`;
+ }).join("");
+ return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
+}
+function renderIcebergSignals(sig){
+ sig=sig||{};
+ const st=sig.stats||{}, all=st.all||{}, tod=st.today||{};
+ const armed=sig.armed||[];
+ const rows=sig.rows||[];
+ const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>
+  <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.total_pnl!=null?" · ₹"+sg(all.total_pnl,0):""}${all.spot_r_trades?` · ${all.spot_r_trades} spot-R`:""}${all.premium_trades?` · ${all.premium_trades} premium`:""}</div>`;
+ const cols=[["TIME IST"],["SYMBOL"],["SIDE"],["LEVEL"],["ENTRY"],["SL"],["T1"],["T2"],["STATUS"],["R / P&L"]].map(x=>x);
+ let body="";
+ body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
+ if(!armed.length) body+=`<div class="m">Koi armed setup nahi.</div>`;
+ else body+=iceSigTable(armed.map(r=>({...r,direction:r.direction||"ARMED",status:r.status||"ARMED"})),cols);
+ body+=`<div class="iceSigSub">CONFIRMED / OPEN / CLOSED</div>`;
+ if(!rows.length) body+=`<div class="m">Aaj abhi koi confirmed paper signal nahi.</div>`;
+ else body+=iceSigTable(rows,cols);
+ return `<div id="iceSig">${head}${body}</div>`;
+}
 function renderIceberg(){
  const ice=(D&&D.iceberg)||((D&&D.state&&D.state.iceberg))||{};
  const rows=(ice.rows||ice.recent||ice.active||[]).slice().sort((a,b)=>String(b.ts||b.first_ts||"").localeCompare(String(a.ts||a.first_ts||""))).slice(0,10);
@@ -187,8 +230,9 @@ function renderIceberg(){
  const sigs=Object.keys(by).sort().map(k=>esc(k)+" "+by[k]).join(" · ");
  const n=ice.detections_today!=null?ice.detections_today:rows.length;
  $("icebergN").innerHTML=`<span class="info">INFO ONLY · not a setup</span> · today ${esc(n)}${sigs?" · "+sigs:""}`;
- if(!rows.length){$("iceberg").innerHTML='<div class="m">Aaj abhi koi iceberg detection nahi.</div>';return}
- $("iceberg").innerHTML=`<div class="icebergWrap"><table><tr><th>TIME IST</th><th>SYMBOL</th><th>SIDE</th><th>PRICE</th><th>SIGNAL(S)</th><th>CONF</th><th>EXEC vs VIS</th></tr>`+
+ let html="";
+ if(!rows.length) html='<div class="m">Aaj abhi koi iceberg detection nahi.</div>';
+ else html=`<div class="icebergWrap"><table><tr><th>TIME IST</th><th>SYMBOL</th><th>SIDE</th><th>PRICE</th><th>SIGNAL(S)</th><th>CONF</th><th>EXEC vs VIS</th></tr>`+
   rows.map(r=>{
    const side=String(r.side||"");
    const sc=/buyer/i.test(side)?"buyer":(/seller/i.test(side)?"seller":"dm");
@@ -200,6 +244,7 @@ function renderIceberg(){
    const px=r.price==null?"—":Number(r.price).toLocaleString("en-IN",{maximumFractionDigits:2});
    return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts||r.first_ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${sc}">${esc(side)}</td><td>${esc(px)}</td><td class="dm">${esc(sig)}</td><td class="conf-${esc(conf)}">${esc(r.confidence||"—")}</td><td><span class="nx">${esc(nx)}</span> <span class="m">${esc(exe)}/${esc(vis)}</span></td></tr>`;
   }).join("")+`</table></div>`;
+ $("iceberg").innerHTML=html+renderIcebergSignals(ice.signals||{});
 }
 function renderNews(){
  const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
