@@ -56,6 +56,7 @@ a{color:inherit;text-decoration:none}
 #iceSig table{width:max-content;min-width:100%;border-collapse:collapse;font-size:10px;box-sizing:border-box}
 #iceSig th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px 4px;letter-spacing:.08em;white-space:nowrap}
 #iceSig td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap;vertical-align:baseline}
+#iceSig td.opt{white-space:normal;max-width:240px;overflow-wrap:anywhere;line-height:1.35}
 #iceSig .buy{color:var(--green)}#iceSig .sell{color:var(--pink)}
 #iceSig .st-ARMED{color:var(--amber)}#iceSig .st-OPEN{color:var(--green)}#iceSig .st-T1_DONE{color:var(--amber)}#iceSig .st-CLOSED{color:var(--dim)}#iceSig .st-SKIPPED,.st-EXPIRED,.st-INVALID{color:var(--muted)}
 #iceSig .bf{color:var(--amber);font-size:8px;letter-spacing:.08em;margin-left:4px}
@@ -199,11 +200,25 @@ function iceSigTable(rows, cols){
   const dir=String(r.direction||"");
   const dc=/SELL/i.test(dir)?"sell":(/BUY/i.test(dir)?"buy":"dm");
   const st=String(r.status||"");
-  const pnl=r.pnl_label||(r.pnl_mode==="option_premium"?"option premium":(r.r!=null?"SPOT R":""));
-  const rr=r.r!=null?sg(Number(r.r),2)+"R":"—";
-  const pn=r.pnl!=null?("₹"+sg(Number(r.pnl),0)):"";
   const sltxt=(st==="T1_DONE"&&r.sl!=null)?(String(r.sl)+" cost"):(r.sl??"—");
-  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}</td><td>${esc(rr)}${pn?" "+esc(pn):""}${pnl?` <span class="m">${esc(pnl)}</span>`:""}</td></tr>`;
+  const rr=r.r!=null?sg(Number(r.r),2)+"R":"—";
+  const rlab=r.r_label||(r.pnl_mode==="option_premium"?"premium R (fill basis)":(r.pnl_mode==="premium_na"?"spot R":""));
+  let pn="";
+  if(r.pnl_mode==="premium_na") pn="premium n/a";
+  else if(r.pnl!=null) pn="₹"+sg(Number(r.pnl),0);
+  else if(r.upnl!=null) pn="u₹"+sg(Number(r.upnl),0);
+  const lots=r.lots||2, lot=r.lot, typ=r.option_type||"";
+  const strike=r.option_strike!=null?r.option_strike:"";
+  const cname=r.contract?esc(r.contract):"";
+  const optHead=r.contract?`${cname}${strike!==""?` ${esc(String(strike))}${esc(typ)}`:""}${lot?` · ${lots}×${lot}`:""}`:"";
+  const eP=r.premium_entry!=null?sg(Number(r.premium_entry),2):"";
+  const x1=r.lot1_premium_exit, x2=r.lot2_premium_exit, xL=r.premium_ltp;
+  let xP="";
+  if(x1!=null&&x2!=null) xP=sg(Number(x1),2)+(Number(x1)===Number(x2)?"":"/"+sg(Number(x2),2));
+  else if(x1!=null) xP=sg(Number(x1),2)+(xL!=null?" / ltp "+sg(Number(xL),2):"");
+  else if(xL!=null) xP="ltp "+sg(Number(xL),2);
+  const optLine=r.pnl_mode==="premium_na"?"premium n/a":(optHead?(eP?`${optHead} · E ${eP}${xP?` → ${xP}`:""}`:optHead):"");
+  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}</td><td class="opt">${esc(rr)}${pn&&r.pnl_mode!=="premium_na"?" "+pn:""}${r.pnl_mode==="premium_na"?` <span class="m">premium n/a</span>`:""}${rlab?` <span class="m">${esc(rlab)}</span>`:""}${optLine?`<div class="m">${optLine}</div>`:""}</td></tr>`;
  }).join("");
  return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
 }
@@ -214,7 +229,7 @@ function renderIcebergSignals(sig){
  const rows=sig.rows||[];
  const bf=st.backfill_excluded||{}, bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
  const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>
-  <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.total_pnl!=null?" · ₹"+sg(all.total_pnl,0):""}${all.spot_r_trades?` · ${all.spot_r_trades} spot-R`:""}${all.premium_trades?` · ${all.premium_trades} premium`:""}${bfN?` · ${bfN} backfill excluded from live stats`:""}</div>`;
+  <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.premium_trades?` · ₹${sg(all.total_pnl,0)} premium`:""}${all.premium_na_trades?` · ${all.premium_na_trades} premium n/a`:""}${bfN?` · ${bfN} backfill excluded from live stats`:""}</div>`;
  const cols=[["TIME IST"],["SYMBOL"],["SIDE"],["LEVEL"],["ENTRY"],["SL"],["T1"],["T2"],["STATUS"],["R / P&L"]].map(x=>x);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
