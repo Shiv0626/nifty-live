@@ -68,6 +68,17 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
 .snews{margin:4px 0 5px;padding:4px 6px;border-left:2px solid var(--amber);background:#12151c;border-radius:0 4px 4px 0}
 .snewsL{margin:0 0 3px}.snewsL:last-child{margin:0}
 .snewsH{font-family:var(--hi);font-size:12px;line-height:1.35;color:var(--text);white-space:normal}
+#newsMoversP{border-color:#5a3d0c;max-width:100%;min-width:0;box-sizing:border-box}
+#newsMoversP .lbl>span:first-child{color:var(--amber);letter-spacing:.12em}
+#newsMoversN{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:right}
+#newsMoversWrap{overflow:auto;max-width:100%;min-width:0;max-height:200px;box-sizing:border-box;-webkit-overflow-scrolling:touch}
+#newsMovers{max-width:100%;min-width:0}
+.nmRow{display:grid;grid-template-columns:minmax(72px,88px) 58px minmax(0,1fr);gap:4px 8px;padding:5px 2px;border-bottom:1px solid var(--hair);align-items:start;max-width:100%;box-sizing:border-box}
+.nmSym{font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nmPct{font-weight:700;white-space:nowrap;text-align:right}
+.nmMeta{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nmH{font-family:var(--hi);font-size:13px;line-height:1.3;color:var(--text);white-space:normal;overflow-wrap:anywhere}
+.nmInfo{color:var(--amber);font-size:9px;letter-spacing:.08em}
 @media (max-width:900px){
  html,body,#app{overflow-x:hidden;max-width:100%}
  #app{height:auto}.main{grid-template-columns:minmax(0,1fr);}
@@ -77,10 +88,17 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
  .hdr{flex-direction:column;align-items:stretch}.ctrs{flex:none;width:100%}.ctr{padding:2px 5px}
  .panel,.col{flex:none!important}#chartP{flex:none!important}
  #newsP{max-height:300px!important}#newsP .scroll,#gradedP .scroll{overflow:auto}#gradedP{max-height:260px}#newsP,#gradedP{overflow:hidden!important}#newsP .scroll,#gradedP .scroll{flex:1 1 auto;min-height:0}
+ #newsMoversP{overflow:hidden!important;max-height:240px!important;width:100%;max-width:100%;min-width:0}
+ #newsMoversP .scroll,#newsMoversWrap{overflow-x:hidden!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
+ #newsMoversP .nmRow{grid-template-columns:minmax(64px,1fr) 52px;gap:3px 6px}
+ #newsMoversP .nmH{grid-column:1/-1;font-size:12px}
  #icebergP{overflow:hidden!important;max-height:220px!important;width:100%;max-width:100%;min-width:0}
  #icebergP .scroll,#icebergWrap{overflow-x:auto!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
 }
 @media (max-width:420px){
+ #newsMoversP{max-height:200px!important;padding:6px}
+ #newsMoversWrap{max-height:150px}
+ #newsMoversP .nmH{font-size:11px}
  #icebergP{max-height:200px!important;padding:6px}
  #iceberg table{font-size:9px}
  #iceberg th,#iceberg td{padding:2px 3px;font-size:8px;letter-spacing:0}
@@ -100,6 +118,10 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
  <div class="panel" id="newsP" style="flex:0 0 auto;max-height:22vh">
   <div class="lbl"><span>NEWS FLASH · हिंदी</span><span id="newsAsOf"></span></div>
   <div class="scroll"><div id="news"></div></div>
+ </div>
+ <div class="panel" id="newsMoversP" style="flex:0 0 auto;max-height:28vh">
+  <div class="lbl"><span>NEWS MOVERS · not on WATCH</span><span id="newsMoversN"></span></div>
+  <div class="scroll" id="newsMoversWrap"><div id="newsMovers"></div></div>
  </div>
  <div class="panel" id="icebergP" style="flex:0 0 auto;max-height:26vh">
   <div class="lbl"><span>ICEBERG DETECTIONS</span><span id="icebergN"></span></div>
@@ -183,6 +205,19 @@ function renderNews(){
  const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
  const mk={bullish:["▲","g"],bearish:["▼","p"],neutral:["●","a"]};
  $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">No news</div>';
+}
+function renderNewsMovers(){
+ const st=(D&&D.state)||{}, mv=st.news_movers||{}, rows=mv.rows||[];
+ const nEl=$("newsMoversN");
+ if(nEl) nEl.innerHTML=`<span class="nmInfo">INFO ONLY</span> · ${rows.length} names`+(mv.as_of||st.news_movers_as_of?" · as of "+esc(mv.as_of||st.news_movers_as_of):"");
+ const box=$("newsMovers");
+ if(!box) return;
+ if(!rows.length){box.innerHTML='<div class="m">No off-WATCH F&amp;O name with fresh news and a &gt;1% move.</div>';return;}
+ box.innerHTML=rows.slice(0,15).map(r=>{
+  const pct=Number(r.pct), since=r.pct_since_news;
+  const sinceTxt=(since==null||since===""||isNaN(Number(since)))?"":` · since news ${sg(Number(since))}%`;
+  return `<div class="nmRow"><div><div class="nmSym">${esc(r.symbol)}</div><div class="nmMeta">${esc(r.time||"")} · ${esc(r.source||"")}</div></div><div class="nmPct ${cl(pct)}">${sg(pct)}%</div><div class="nmH">${esc(r.hi||r.headline||"")}<div class="nmMeta">${f(r.ltp)} vs prev ${f(r.prev_close)}${sinceTxt}</div></div></div>`;
+ }).join("");
 }
 function stockNewsHtml(s){
  const bag=((D&&D.state&&D.state.stock_news)||{}),rec=bag[s.symbol]||s.news||null;
@@ -310,7 +345,7 @@ async function refresh(){
  if(l.status==="fulfilled"){L=l.value.quotes||{};ltpAge=l.value.age_s;quoteAsOf=l.value.updated;lastOk=Date.now()}
  if(d.status==="fulfilled")D=d.value;
  if(c.status==="fulfilled"&&c.value)bars=(c.value.bars||[]).map(x=>{const dt=new Date(x.time*1000+TZS);return {t:dt.toISOString().slice(0,16).replace("T"," "),o:x.open,h:x.high,l:x.low,c:x.close}});
- for(const fn of [renderCounters,renderNews,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
+ for(const fn of [renderCounters,renderNews,renderNewsMovers,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
  renderLive();$("upd").textContent="poll "+ist()+" IST · quotes asof "+(quoteAsOf?quoteAsOf.slice(11,19)+" IST":"unavailable")+(D&&D.graded_last_run?" · graded "+D.graded_last_run.slice(11):"");
  }finally{inFlight=false}
 }
