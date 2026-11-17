@@ -35,7 +35,7 @@ a{color:inherit;text-decoration:none}
 #auditStrip.show{display:block}
 #auditStrip .ah{color:#ff6b8a;font-weight:700;font-size:10px;letter-spacing:.12em;margin-right:8px}
 #auditStrip .ai{font-size:11px;color:#ffc9d4;margin:2px 0;font-family:var(--hi);line-height:1.25}
-#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922;max-width:100%;min-width:0;box-sizing:border-box;max-height:44vh}
+#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922;max-width:100%;min-width:0;box-sizing:border-box;max-height:56vh}
 #icebergP .lbl{flex-wrap:wrap;align-items:baseline;min-width:0;max-width:100%}
 #icebergP .lbl>span:first-child{color:#3DDBD9;letter-spacing:.14em}
 #icebergN{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:right}
@@ -61,6 +61,14 @@ a{color:inherit;text-decoration:none}
 #iceSig .st-ARMED{color:var(--amber)}#iceSig .st-OPEN{color:var(--green)}#iceSig .st-T1_DONE{color:var(--amber)}#iceSig .st-CLOSED{color:var(--dim)}#iceSig .st-SKIPPED,.st-EXPIRED,.st-INVALID{color:var(--muted)}
 #iceSig .bf{color:var(--amber);font-size:8px;letter-spacing:.08em;margin-left:4px}
 #iceSigWrap{overflow-x:auto;overflow-y:visible;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
+#iceSig .iceCards{display:flex;flex-direction:column;gap:0;min-width:0;max-width:100%}
+#iceSig .card.iceberg{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9;max-width:100%;box-sizing:border-box;overflow:hidden}
+#iceSig .card.iceberg.watch{border-style:dotted;border-color:#3DDBD9}
+#iceSig .card.iceberg.closed{opacity:.92}
+#iceSig .tagIce{font-size:9px;letter-spacing:.08em;color:#3DDBD9;border:1px solid #1F5E5C;border-radius:3px;padding:0 4px;font-weight:700;white-space:nowrap}
+#iceSig .iceLv{font-size:11px}
+#iceSig .optline{grid-template-columns:1fr;margin-top:2px}
+#iceSig .optline span{white-space:normal;overflow-wrap:anywhere}
 @media (max-width:900px){#auditStrip{max-height:96px}}
 .card .h{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .lv{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 6px;margin:4px 0;font-size:11px}
@@ -105,14 +113,15 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
  #newsMoversP .scroll,#newsMoversWrap{overflow-x:hidden!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
  #newsMoversP .nmRow{grid-template-columns:minmax(64px,1fr) 52px;gap:3px 6px}
  #newsMoversP .nmH{grid-column:1/-1;font-size:12px}
- #icebergP{overflow:hidden!important;max-height:360px!important;width:100%;max-width:100%;min-width:0}
+ #icebergP{overflow:hidden!important;max-height:480px!important;width:100%;max-width:100%;min-width:0}
+ #iceSig .lv{grid-template-columns:repeat(2,1fr)}
  #icebergP .scroll,#icebergWrap,#iceSigWrap{overflow-x:auto!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
 }
 @media (max-width:420px){
  #newsMoversP{max-height:200px!important;padding:6px}
  #newsMoversWrap{max-height:150px}
  #newsMoversP .nmH{font-size:11px}
- #icebergP{max-height:340px!important;padding:6px}
+ #icebergP{max-height:460px!important;padding:6px}
  #iceberg table,#iceSig table{font-size:9px}
  #iceberg th,#iceberg td,#iceSig th,#iceSig td{padding:2px 3px;font-size:8px;letter-spacing:0}
  #iceberg .info,#iceSig .iceSigH,#iceSig .stats,#iceSigSub{font-size:8px;letter-spacing:0}
@@ -222,6 +231,66 @@ function iceSigTable(rows, cols){
  }).join("");
  return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
 }
+function iceChartUrl(r,opt){
+ let u=lc(r.symbol,opt);
+ const add=(k,v)=>{if(v!=null&&v!=="")u+="&"+k+"="+encodeURIComponent(v)};
+ add("src","iceberg");
+ add("side",/SELL/i.test(r.direction||"")?"SHORT":"LONG");
+ if(r.entry!=null)add("entry",r.entry);
+ const sl=r.orig_sl!=null?r.orig_sl:r.sl; if(sl!=null)add("sl",sl);
+ if(r.t1!=null)add("t1",r.t1);
+ if(r.t2!=null)add("t2",r.t2);
+ if(r.iceberg_level!=null)add("level",r.iceberg_level);
+ const tm=String(r.time_ist||"").match(/(\d{1,2}:\d{2})/);
+ if(tm)add("time",tm[1]);
+ if(r.status)add("status",r.status);
+ return u;
+}
+function iceOptLine(r){
+ const st=String(r.status||"").toUpperCase();
+ if(st==="ARMED"&&!r.contract) return "";
+ if(!r.contract&&r.pnl_mode!=="premium_na"&&r.pnl==null&&r.upnl==null&&r.premium_entry==null) return "";
+ const bits=[];
+ if(r.contract) bits.push(`<b class="a">${esc(r.contract)}</b>`);
+ if(r.option_strike!=null) bits.push(esc((r.option_type||"")+" "+r.option_strike));
+ if(r.lots&&r.lot) bits.push(esc(r.lots+"×"+r.lot));
+ if(r.premium_entry!=null) bits.push(`E <b class="dm">${f(r.premium_entry)}</b>`);
+ const ex=r.premium_exit!=null?r.premium_exit:null;
+ if(ex!=null) bits.push(`→ <b class="dm">${f(ex)}</b>`);
+ else if(r.premium_ltp!=null) bits.push(`LTP <b class="dm">${f(r.premium_ltp)}</b>`);
+ if(r.pnl!=null) bits.push(`<b class="${cl(r.pnl)}">₹${sg(r.pnl,0)}</b>`);
+ else if(r.upnl!=null) bits.push(`uPnL <b class="${cl(r.upnl)}">₹${sg(r.upnl,0)}</b>`);
+ else if(r.pnl_mode==="premium_na") bits.push("premium n/a");
+ if(r.r!=null&&st==="CLOSED") bits.push(`<b class="${cl(r.r)}">${sg(r.r,2)}R</b>`);
+ if(r.r_label) bits.push(`<span class="m">${esc(r.r_label)}</span>`);
+ return `<div class="lv optline"><span class="m">OPT ${bits.join(" · ")}</span></div>`;
+}
+function icebergCard(r){
+ const dir=String(r.direction||"");
+ const buy=!/SELL/i.test(dir);
+ const st=String(r.status||"ARMED").toUpperCase();
+ const armed=st==="ARMED";
+ const q=L[r.symbol];
+ const entry=r.entry, sl=r.orig_sl!=null?r.orig_sl:r.sl, t1=r.t1, t2=(+r.t2>0)?r.t2:null;
+ const risk=Math.abs((entry||0)-(sl||0)), sgn=buy?1:-1;
+ let liveR=null;
+ if(!armed&&st!=="CLOSED"&&q&&risk) liveR=sgn*(q.ltp-entry)/risk;
+ else if(st==="CLOSED"&&r.r!=null) liveR=Number(r.r);
+ const badgeSt=armed?"a":(st==="OPEN"||st==="T1_DONE"?"g":"m");
+ let badge=`<span class="tagIce">ICEBERG · paper</span> <span class="badge ${badgeSt}" style="border:1px ${armed?"dotted":"solid"} currentColor">${armed?"ARMED":esc(st)}${r.outcome&&st==="CLOSED"?" · "+esc(r.outcome):""}${r.backfill?' <span class="bf">backfill</span>':""}</span>`;
+ const cls=" iceberg"+(armed?" watch":"")+(st==="CLOSED"?" closed":"");
+ const note=armed?(r.awaiting||dir):"";
+ const lv=armed
+  ? `<div class="lv iceLv"><span class="m">LEVEL <b class="a">${f(r.iceberg_level)}</b></span>${r.awaiting?`<span class="m" style="grid-column:span 1">${esc(r.awaiting)}</span>`:""}</div>`
+  : `<div class="lv"><span class="m">E <b class="dm">${f(entry)}</b></span><span class="m">SL <b class="p">${f(sl)}</b></span><span class="m">T1 <b class="g">${f(t1)}</b></span>${t2?`<span class="m">T2 <b class="g">${f(t2)}</b></span>`:""}</div>${r.iceberg_level!=null?`<div class="lv" style="grid-template-columns:1fr"><span class="m">ICEBERG <b class="a">${f(r.iceberg_level)}</b></span></div>`:""}`;
+ return `<div class="card${cls}"><div class="h"><span><b class="${buy?"g":"p"}">${buy?"▲":"▼"} ${esc(r.symbol)}</b> ${badge} <span class="m">${esc(r.time_ist||"")}</span></span>
+ <span>${q?f(q.ltp):"—"}${liveR==null?"":` <b class="${cl(liveR)}">${liveR>0?"+":""}${liveR.toFixed(2)}R</b>`}</span></div>
+ ${lv}
+ ${armed?"":iceOptLine(r)}
+ ${note?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(note)}</div>`:""}
+ ${stockNewsHtml({symbol:r.symbol})}
+ <div class="btns"><a class="btn" href="${iceChartUrl(r)}" target="_blank">Live Chart</a><a class="btn" href="${iceChartUrl(r,1)}" target="_blank">Option</a><a class="btn" href="${tv(r.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
+}
 function renderIcebergSignals(sig){
  sig=sig||{};
  const st=sig.stats||{}, all=st.all||{}, tod=st.today||{};
@@ -230,14 +299,13 @@ function renderIcebergSignals(sig){
  const bf=st.backfill_excluded||{}, bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
  const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>
   <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.premium_trades?` · ₹${sg(all.total_pnl,0)} premium`:""}${all.premium_na_trades?` · ${all.premium_na_trades} premium n/a`:""}${bfN?` · ${bfN} backfill excluded from live stats`:""}</div>`;
- const cols=[["TIME IST"],["SYMBOL"],["SIDE"],["LEVEL"],["ENTRY"],["SL"],["T1"],["T2"],["STATUS"],["R / P&L"]].map(x=>x);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
  if(!armed.length) body+=`<div class="m">Koi armed setup nahi.</div>`;
- else body+=iceSigTable(armed.map(r=>({...r,direction:r.direction||"ARMED",status:r.status||"ARMED"})),cols);
+ else body+=`<div class="iceCards">${armed.map(icebergCard).join("")}</div>`;
  body+=`<div class="iceSigSub">CONFIRMED / OPEN / CLOSED</div>`;
  if(!rows.length) body+=`<div class="m">Aaj abhi koi confirmed paper signal nahi.</div>`;
- else body+=iceSigTable(rows,cols);
+ else body+=`<div class="iceCards">${rows.map(icebergCard).join("")}</div>`;
  return `<div id="iceSig">${head}${body}</div>`;
 }
 function renderIceberg(){
@@ -261,7 +329,7 @@ function renderIceberg(){
    const px=r.price==null?"—":Number(r.price).toLocaleString("en-IN",{maximumFractionDigits:2});
    return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts||r.first_ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${sc}">${esc(side)}</td><td>${esc(px)}</td><td class="dm">${esc(sig)}</td><td class="conf-${esc(conf)}">${esc(r.confidence||"—")}</td><td><span class="nx">${esc(nx)}</span> <span class="m">${esc(exe)}/${esc(vis)}</span></td></tr>`;
   }).join("")+`</table></div>`;
- $("iceberg").innerHTML=html+renderIcebergSignals(ice.signals||{});
+ $("iceberg").innerHTML=renderIcebergSignals(ice.signals||{})+html;
 }
 function renderNews(){
  const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
