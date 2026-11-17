@@ -65,6 +65,9 @@ a{color:inherit;text-decoration:none}
 .sec{font-size:9px;color:var(--muted);letter-spacing:.1em;margin:4px 0 2px;grid-column:1/-1}
 table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px}td{padding:2px;border-top:1px solid var(--hair);white-space:nowrap}#paper table{font-size:10px}#paper td,#paper th{padding:2px 3px}
 .foot{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;flex:0 0 auto}
+.snews{margin:4px 0 5px;padding:4px 6px;border-left:2px solid var(--amber);background:#12151c;border-radius:0 4px 4px 0}
+.snewsL{margin:0 0 3px}.snewsL:last-child{margin:0}
+.snewsH{font-family:var(--hi);font-size:12px;line-height:1.35;color:var(--text);white-space:normal}
 @media (max-width:900px){
  html,body,#app{overflow-x:hidden;max-width:100%}
  #app{height:auto}.main{grid-template-columns:minmax(0,1fr);}
@@ -181,6 +184,14 @@ function renderNews(){
  const mk={bullish:["▲","g"],bearish:["▼","p"],neutral:["●","a"]};
  $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">No news</div>';
 }
+function stockNewsHtml(s){
+ const bag=((D&&D.state&&D.state.stock_news)||{}),rec=bag[s.symbol]||s.news||null;
+ if(!rec) return `<div class="snews m">NEWS · fetching…</div>`;
+ const items=rec.items||[];
+ const asof=rec.as_of||((D&&D.state&&D.state.stock_news_as_of)||"");
+ if(!items.length) return `<div class="snews m">NEWS · no fresh headline${asof?" · as of "+esc(asof):""}</div>`;
+ return `<div class="snews">${items.slice(0,2).map(n=>`<div class="snewsL"><span class="nmeta">${esc(n.time||"")} · ${esc(n.source||"")}</span><div class="snewsH">${esc(n.hi||n.headline||"")}</div></div>`).join("")}</div>`;
+}
 function setupCard(s,watch){
  const q=L[s.symbol],risk=Math.abs((s.entry||0)-(s.sl||0)),sgn=s.side==="LONG"?1:-1;
  const st=String(s.status||"").toUpperCase();
@@ -199,6 +210,7 @@ function setupCard(s,watch){
  <div class="lv"><span class="m">E <b class="dm">${f(s.entry)}</b></span><span class="m">SL <b class="p">${f(s.sl)}</b></span><span class="m">T1 <b class="g">${f(s.t1)}</b></span>${s.t2?`<span class="m">T2 <b class="g">${f(s.t2)}</b></span>`:""}</div>
  ${(o=>o&&o.contract?`<div class="lv" style="margin-top:2px"><span class="m">OPT <b class="a">${esc(o.contract)}</b></span><span class="m">E <b class="dm">${f(o.entry)}</b></span><span class="m">SL <b class="p">${f(o.sl)}</b></span><span class="m">T1 <b class="g">${f(o.t1)}</b></span>${o.t2?`<span class="m">T2 <b class="g">${f(o.t2)}</b></span>`:""}</div>`:"")(s.option)}
  ${s.triggerText||s.note||s.why?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(s.triggerText||s.why||s.note)}</div>`:""}
+ ${stockNewsHtml(s)}
  <div class="btns"><a class="btn" href="${lc(s.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${lc(s.symbol,1)}" target="_blank">Option</a><a class="btn" href="${tv(s.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
 }
 function setupRank(s){
