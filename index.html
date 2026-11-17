@@ -10,7 +10,7 @@
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px}
 a{color:inherit;text-decoration:none}
 html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
-#app{display:flex;flex-direction:column;gap:6px;padding:6px;height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+#app{display:flex;flex-direction:column;gap:5px;padding:5px;height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
 .hdr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ttl{color:var(--blue);font-weight:700;letter-spacing:.12em;font-size:12px;white-space:nowrap}
 .live{font-size:10px;letter-spacing:.1em}
@@ -26,8 +26,8 @@ html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
 .nhi{font-family:var(--hi);font-size:17px;font-weight:700;line-height:1.3}
 .nim{font-family:var(--hi);font-size:14px;line-height:1.3;margin-top:2px}
 .nmeta{font-size:10px;color:var(--muted);white-space:nowrap}
-.main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.5fr) minmax(0,1fr);gap:6px;flex:0 0 auto;min-height:62vh}
-.col{display:flex;flex-direction:column;gap:6px;min-height:0;min-width:0}
+.main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);gap:5px;flex:0 0 auto;min-height:0;align-items:start}
+.col{display:flex;flex-direction:column;gap:5px;min-height:0;min-width:0;align-self:start;height:auto}
 .card{border:1px solid var(--border);border-radius:7px;padding:6px;margin-bottom:6px;background:var(--panel2)}
 .card.watch{border-style:dotted;border-color:var(--amber)}
 .card.triggered{border-style:solid;border-color:var(--green)}
@@ -36,10 +36,19 @@ html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
 #auditStrip.show{display:block}
 #auditStrip .ah{color:#ff6b8a;font-weight:700;font-size:10px;letter-spacing:.12em;margin-right:8px}
 #auditStrip .ai{font-size:11px;color:#ffc9d4;margin:2px 0;font-family:var(--hi);line-height:1.25}
-.topRow{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:6px;flex:0 0 auto;max-height:18vh;min-height:0;min-width:0}
-.topRow>.panel{min-height:0;max-height:18vh;overflow:hidden}
-#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922;max-width:100%;min-width:0;box-sizing:border-box;flex:0 1 auto;max-height:32vh;min-height:0;overflow:hidden}
-#icebergP>.scroll{flex:1 1 auto;min-height:0;overflow:auto}
+.topRow{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:5px;flex:0 0 auto;max-height:none;min-height:0;min-width:0;align-items:start}
+.topRow>.panel{min-height:0;max-height:24vh;height:auto;overflow:hidden;align-self:start}
+#aaP{border-color:#1a4a62;box-shadow:inset 3px 0 0 #4CC9F0,0 0 14px #4CC9F022;max-width:100%;min-width:0;box-sizing:border-box;flex:0 0 auto;max-height:56vh;min-height:0;height:auto;overflow:hidden}
+#aaP>.aaBody{overflow:auto;min-height:0;flex:0 1 auto}
+#aaP .aaH{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:baseline;margin-bottom:3px;min-width:0}
+#aaP .aaH>span:first-child{color:#4CC9F0;letter-spacing:.12em;font-size:9px}
+#aaP .info{color:#4CC9F0;font-size:9px;letter-spacing:.08em}
+#aaStats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal}
+#aaP .aaSub{color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
+#aaSetupRow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:start;min-width:0}
+#aaP #gradedP{max-height:28vh;margin-top:4px;border:1px solid var(--hair);box-shadow:none;padding:5px 6px}
+#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922;max-width:100%;min-width:0;box-sizing:border-box;flex:0 0 auto;max-height:48vh;min-height:0;height:auto;overflow:hidden}
+#icebergP>.scroll{flex:0 1 auto;min-height:0;overflow:auto}
 #icebergP .lbl{flex-wrap:wrap;align-items:baseline;min-width:0;max-width:100%}
 #icebergP .lbl>span:first-child{color:#3DDBD9;letter-spacing:.14em}
 #icebergN{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:right}
@@ -108,6 +117,26 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
 .nmMeta{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nmH{font-family:var(--hi);font-size:13px;line-height:1.3;color:var(--text);white-space:normal;overflow-wrap:anywhere}
 .nmInfo{color:var(--amber);font-size:9px;letter-spacing:.08em}
+@media (min-width:901px){
+ .main .panel{flex:0 0 auto!important;height:auto;overflow:hidden}
+ #chartP{height:auto}
+ #chart{height:230px}
+ #setups{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:5px;align-items:start}
+ #setups>.card{margin-bottom:0}
+ #aaP{max-height:56vh}
+ #aaSetupRow{grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr)}
+ #aaP #paper{max-height:42vh;overflow:auto}
+ #aaP #graded{max-height:24vh;overflow:auto}
+ #iceSig .iceCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:5px;align-items:stretch}
+ #iceSig .card.iceberg{margin-bottom:0;height:auto}
+ #iceSig{margin-top:6px;padding-top:5px}
+ #gradedP,#graded{max-height:42vh}
+ #heat{max-height:48vh;overflow:auto}
+ #log{max-height:42vh}
+ #paper{max-height:48vh}
+ #newsMoversWrap{max-height:24vh}
+ .card{padding:5px}
+}
 @media (max-width:900px){
  html,body,#app{overflow-x:hidden;overflow-y:auto;max-width:100%;height:auto}
  #app{height:auto;min-height:0;overflow:visible}
@@ -125,6 +154,9 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
  #newsMoversP .nmRow{grid-template-columns:minmax(64px,1fr) 52px;gap:3px 6px}
  #newsMoversP .nmH{grid-column:1/-1;font-size:12px}
  #icebergP{overflow:hidden!important;max-height:480px!important;width:100%;max-width:100%;min-width:0}
+ #aaP{overflow:visible!important;max-height:none!important;width:100%}
+ #aaSetupRow{display:block}
+ #aaP #paper,#aaP #graded{max-height:none}
  #iceSig .lv{grid-template-columns:repeat(2,1fr)}
  #icebergP .scroll,#icebergWrap,#iceSigWrap{overflow-x:auto!important;overflow-y:auto!important;max-width:100%;-webkit-overflow-scrolling:touch}
 }
@@ -162,18 +194,33 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
   <div class="lbl"><span>ICEBERG DETECTIONS</span><span id="icebergN"></span></div>
   <div class="scroll" id="iceberg"></div>
  </div>
+ <div class="panel" id="aaP">
+  <div class="aaH"><span>A/A+ SETUP SYSTEM · paper</span><span><span class="info">PAPER ONLY · not iceberg</span> <span id="setupsN"></span> <span id="paperU"></span></span></div>
+  <div class="stats" id="aaStats"></div>
+  <div class="aaBody">
+   <div class="aaSetupRow" id="aaSetupRow">
+    <div>
+     <div class="aaSub">SETUPS · A / A+ / WATCH</div>
+     <div class="scroll" id="setups"></div>
+    </div>
+    <div>
+     <div class="aaSub">DEMO TRADES · this book's P&amp;L</div>
+     <div class="scroll" id="paper"></div>
+     <div class="panel" id="btstP" style="flex:0 0 auto;margin-top:6px"><div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div><div class="scroll" id="btst"></div></div>
+    </div>
+   </div>
+   <div class="panel" id="gradedP">
+    <div class="lbl"><span>GRADED · REJECTIONS</span><span id="gradN"></span></div>
+    <div class="scroll" id="graded"></div>
+   </div>
+  </div>
+ </div>
  <div class="main">
   <div class="col">
-   <div class="panel" style="flex:1.3"><div class="lbl"><span>SETUPS · A / A+</span><span id="setupsN"></span></div><div class="scroll" id="setups"></div></div>
-   <div class="panel" id="gradedP" style="flex:1"><div class="lbl"><span>GRADED · REJECTIONS</span><span id="gradN"></span></div><div class="scroll" id="graded"></div></div>
+   <div class="panel" id="chartP"><div class="lbl"><span>NIFTY 50 · 5M</span><a class="b" id="niftyTv" target="_blank" rel="noreferrer">TradingView ↗</a></div><svg id="chart"></svg></div>
+   <div class="panel"><div class="lbl"><span><span id="heatT">NIFTY 50 HEAT</span> <span class="dm hs">· vs prev close</span> <button id="heatBtn" class="hbtn">SECTOR</button></span><span id="breadth"></span></div><div class="scroll"><div class="heat" id="heat"></div></div></div>
   </div>
   <div class="col">
-   <div class="panel" id="chartP" style="flex:0 0 34%"><div class="lbl"><span>NIFTY 50 · 5M</span><a class="b" id="niftyTv" target="_blank" rel="noreferrer">TradingView ↗</a></div><svg id="chart"></svg></div>
-   <div class="panel" style="flex:1"><div class="lbl"><span><span id="heatT">NIFTY 50 HEAT</span> <span class="dm hs">· vs prev close</span> <button id="heatBtn" class="hbtn">SECTOR</button></span><span id="breadth"></span></div><div class="scroll"><div class="heat" id="heat"></div></div></div>
-  </div>
-  <div class="col">
-   <div class="panel" style="flex:1.2"><div class="lbl"><span>DEMO TRADING (PAPER)</span><span id="paperU"></span></div><div class="scroll" id="paper"></div></div>
-   <div class="panel" id="btstP" style="flex:0 0 auto;max-height:34%"><div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div><div class="scroll" id="btst"></div></div>
    <div class="panel" style="flex:1"><div class="lbl"><span>MOVERS · LOG</span></div><div class="scroll" id="log"></div></div>
   </div>
  </div>
@@ -201,12 +248,10 @@ function renderLive(){
  const e=$("live");e.className="live "+(ok?"g":"m");e.textContent=(ok?"FRESH POLL ● ":"STALE ● ")+(age==null?"—":Math.round(age)+"s");
 }
 function renderCounters(){
- const n=L.NIFTY,v=L.INDIAVIX,pp=(D&&D.paper)||{},day=pp.day||{},u=pp.unrealized||{};
- const pr=(day.r||0)+(u.r||0),prs=(day.pnl||0)+(u.pnl||0);
+ const n=L.NIFTY,v=L.INDIAVIX;
  let h=`<span class="ctr"><span class="k">NIFTY</span><span class="v ${n?cl(n.chg):""}">${n?f(n.ltp):"—"}</span><span class="d ${n?cl(n.chg):""}">${n?sg(n.chg)+" ("+sg(n.pct)+"%)":""}</span></span>`;
  h+=`<span class="ctr"><span class="k">VIX</span><span class="v b">${v?f(v.ltp):"—"}</span><span class="d ${v?cl(v.pct):""}">${v?sg(v.pct)+"%":""}</span></span>`;
- h+=`<span class="ctr"><span class="k">P&amp;L</span><span class="v ${cl(pr)}">${sg(pr)}R</span><span class="d ${cl(prs)}">₹${sg(prs,0)}</span></span>`;
- const _aN=((D&&D.state.setups)||[]).filter(x=>(x.grade==="A"||x.grade==="A+")&&String(x.status||"").toUpperCase()!=="WATCH").length;const _gc=(D&&D.counts)||{};((D&&D.state.counters)||[]).forEach(c=>{c=Object.assign({},c);if(c.k==="GRADED TODAY"&&_gc.graded!=null)c.v=String(_gc.graded);if(c.k==="A / A+")c.v=String(Math.max(_aN,parseInt((_gc.a_or_a_plus!=null?_gc.a_or_a_plus:c.v))||0));h+=`<span class="ctr"><span class="k">${esc(c.k)}</span><span class="v ${c.tone==="pink"?"p":c.tone==="green"?"g":c.tone==="amber"?"a":"b"}">${esc(c.v)}</span></span>`});
+ const _aN=((D&&D.state&&D.state.setups)||[]).filter(x=>(x.grade==="A"||x.grade==="A+")&&String(x.status||"").toUpperCase()!=="WATCH").length;const _gc=(D&&D.counts)||{};((D&&D.state&&D.state.counters)||[]).forEach(c=>{c=Object.assign({},c);if(/^P\s*&\s*L$|PNL|P&L/i.test(c.k||""))return;if(c.k==="GRADED TODAY"&&_gc.graded!=null)c.v=String(_gc.graded);if(c.k==="A / A+")c.v=String(Math.max(_aN,parseInt((_gc.a_or_a_plus!=null?_gc.a_or_a_plus:c.v))||0));h+=`<span class="ctr"><span class="k">${esc(c.k)}</span><span class="v ${c.tone==="pink"?"p":c.tone==="green"?"g":c.tone==="amber"?"a":"b"}">${esc(c.v)}</span></span>`});
  $("ctrs").innerHTML=h;
 }
 function iceTime(t){
@@ -467,8 +512,10 @@ function renderBtst(){
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
- $("paperU").innerHTML=`open <span class="${cl(u.pnl)}">₹${sg(u.pnl,0)}</span>`;
- let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">BOOKED <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">TOTAL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`;
+ const pu=$("paperU"); if(pu) pu.innerHTML=`open <span class="${cl(u.pnl)}">₹${sg(u.pnl,0)}</span>`;
+ const st=$("aaStats");
+ if(st) st.innerHTML=`today <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b> · trades ${d.trades||0} · win ${f(t.winRate,0)}% (${t.trades||0}) · all <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b>`;
+ let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">TODAY <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">ALL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`;
  const op=p.open||[],td=p.today||[];
  h+=`<table><tr><th>OPEN</th><th>LOTS</th><th>FILL</th><th>LTP</th><th>SL</th><th>T1</th><th>T2</th><th>uPnL</th></tr>`+(op.map(o=>{const c2c=o.c2c||o.cost_moved||o.t1_done;const lotsLbl=`${o.qtyOpenLots??o.lots??1}${c2c?' <span class="a">C2C</span>':''}`;return `<tr><td><span class="${o.side==="LONG"?"g":"p"}">${o.side==="LONG"?"▲":"▼"}</span> ${esc(o.mode==="option"&&o.contract?o.contract.replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):o.symbol)}</td><td>${lotsLbl}</td><td>${f(o.fill)}</td><td>${f(o.ltp)}</td><td class="p">${f(o.sl)}${c2c?' <span class="a">C2C</span>':''}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="${cl(o.uPnl)}">₹${sg(o.uPnl,0)} ${o.uR!=null?sg(o.uR)+"R":""}</td></tr>`}).join("")||`<tr><td colspan="8" class="m">no open positions</td></tr>`)+`</table>`;
  if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";const note=x.note||x.close_note||"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`+(note?`<tr><td colspan="5" class="dm" style="white-space:normal">${esc(x.reason?x.reason+" — ":"")}${esc(note)}</td></tr>`:"")}).join("")+`</table>`;
