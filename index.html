@@ -53,6 +53,10 @@ a{color:inherit;text-decoration:none}
 #iceSig .iceSigH>span:first-child{color:#3DDBD9;letter-spacing:.12em;font-size:9px}
 #iceSig .stats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal}
 #iceSigSub{color:#3DDBD9;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
+#iceSig .iceSkip{margin:2px 0 8px;font-size:11px;line-height:1.35}
+#iceSig .iceSkipRow{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);color:var(--muted)}
+#iceSig .iceSkipRow b{color:var(--dm,#d6d6d6);margin-right:4px}
+#iceSig .iceSkipT{margin-right:8px;opacity:.8}
 #iceSig table{width:max-content;min-width:100%;border-collapse:collapse;font-size:10px;box-sizing:border-box}
 #iceSig th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px 4px;letter-spacing:.08em;white-space:nowrap}
 #iceSig td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap;vertical-align:baseline}
@@ -291,11 +295,23 @@ function icebergCard(r){
  ${stockNewsHtml({symbol:r.symbol})}
  <div class="btns"><a class="btn" href="${iceChartUrl(r)}" target="_blank">Live Chart</a><a class="btn" href="${iceChartUrl(r,1)}" target="_blank">Option</a><a class="btn" href="${tv(r.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
 }
+function iceSkipReason(r){
+ const raw=String((r&&r.skip_reason)||"");
+ if(/PREMIUM_MOVE_TOO_SMALL/.test(raw)) return "skipped: premium move too small";
+ if(raw) return "skipped: "+raw;
+ return "skipped";
+}
+function iceSkipRow(r){
+ const raw=String(r.skip_reason||"");
+ const extra=/PREMIUM_MOVE_TOO_SMALL/.test(raw)&&raw.length>24?` <span class="m">${esc(raw.replace(/^PREMIUM_MOVE_TOO_SMALL\s*/,""))}</span>`:"";
+ return `<div class="iceSkipRow st-SKIPPED"><span class="iceSkipT">${esc(r.time_ist||"")}</span><b>${esc(r.symbol||"")}</b> ${esc(r.direction||"")} · ${esc(iceSkipReason(r))}${extra}</div>`;
+}
 function renderIcebergSignals(sig){
  sig=sig||{};
  const st=sig.stats||{}, all=st.all||{}, tod=st.today||{};
  const armed=sig.armed||[];
  const rows=sig.rows||[];
+ const skipped=sig.skipped_today||[];
  const bf=st.backfill_excluded||{}, bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
  const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>
   <div class="stats">today ${tod.trades||0} · ${sg(tod.total_r||0,2)}R · win ${tod.win_rate||0}% · all ${all.trades||0} · ${sg(all.total_r||0,2)}R · win ${all.win_rate||0}%${all.premium_trades?` · ₹${sg(all.total_pnl,0)} premium`:""}${all.premium_na_trades?` · ${all.premium_na_trades} premium n/a`:""}${bfN?` · ${bfN} backfill excluded from live stats`:""}</div>`;
@@ -306,6 +322,9 @@ function renderIcebergSignals(sig){
  body+=`<div class="iceSigSub">CONFIRMED / OPEN / CLOSED</div>`;
  if(!rows.length) body+=`<div class="m">Aaj abhi koi confirmed paper signal nahi.</div>`;
  else body+=`<div class="iceCards">${rows.map(icebergCard).join("")}</div>`;
+ body+=`<div class="iceSigSub">SKIPPED TODAY</div>`;
+ if(!skipped.length) body+=`<div class="m">Aaj koi skip nahi.</div>`;
+ else body+=`<div class="iceSkip">${skipped.map(iceSkipRow).join("")}</div>`;
  return `<div id="iceSig">${head}${body}</div>`;
 }
 function renderIceberg(){
