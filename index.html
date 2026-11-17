@@ -35,6 +35,15 @@ a{color:inherit;text-decoration:none}
 #auditStrip.show{display:block}
 #auditStrip .ah{color:#ff6b8a;font-weight:700;font-size:10px;letter-spacing:.12em;margin-right:8px}
 #auditStrip .ai{font-size:11px;color:#ffc9d4;margin:2px 0;font-family:var(--hi);line-height:1.25}
+#icebergP{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9,0 0 14px #3DDBD922}
+#icebergP .lbl>span:first-child{color:#3DDBD9;letter-spacing:.14em}
+#iceberg table{width:100%;border-collapse:collapse;font-size:10px}
+#iceberg th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px 4px;letter-spacing:.08em}
+#iceberg td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap;vertical-align:baseline}
+#iceberg .buyer{color:var(--green)}#iceberg .seller{color:var(--pink)}
+#iceberg .conf-high{color:var(--green)}#iceberg .conf-medium{color:var(--amber)}#iceberg .conf-low{color:var(--dim)}
+#iceberg .nx{font-weight:700;color:#3DDBD9}
+#iceberg .info{color:#3DDBD9;font-size:9px;letter-spacing:.08em}
 @media (max-width:900px){#auditStrip{max-height:96px}}
 .card .h{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .lv{display:grid;grid-template-columns:repeat(4,1fr);gap:2px 6px;margin:4px 0;font-size:11px}
@@ -74,6 +83,10 @@ table{width:100%;border-collapse:collapse;font-size:11px}th{color:var(--muted);f
  <div class="panel" id="newsP" style="flex:0 0 auto;max-height:22vh">
   <div class="lbl"><span>NEWS FLASH · हिंदी</span><span id="newsAsOf"></span></div>
   <div class="scroll"><div id="news"></div></div>
+ </div>
+ <div class="panel" id="icebergP" style="flex:0 0 auto;max-height:26vh">
+  <div class="lbl"><span>ICEBERG DETECTIONS</span><span id="icebergN"></span></div>
+  <div class="scroll" id="iceberg"></div>
  </div>
  <div class="main">
   <div class="col">
@@ -115,19 +128,44 @@ function renderLive(){
 }
 function renderCounters(){
  const n=L.NIFTY,v=L.INDIAVIX,pp=(D&&D.paper)||{},day=pp.day||{},u=pp.unrealized||{};
- const pr=(day.r||0),prs=(day.pnl||0);/* booked only (was +unrealized) */
+ const pr=(day.r||0)+(u.r||0),prs=(day.pnl||0)+(u.pnl||0);
  let h=`<span class="ctr"><span class="k">NIFTY</span><span class="v ${n?cl(n.chg):""}">${n?f(n.ltp):"—"}</span><span class="d ${n?cl(n.chg):""}">${n?sg(n.chg)+" ("+sg(n.pct)+"%)":""}</span></span>`;
  h+=`<span class="ctr"><span class="k">VIX</span><span class="v b">${v?f(v.ltp):"—"}</span><span class="d ${v?cl(v.pct):""}">${v?sg(v.pct)+"%":""}</span></span>`;
  h+=`<span class="ctr"><span class="k">P&amp;L</span><span class="v ${cl(pr)}">${sg(pr)}R</span><span class="d ${cl(prs)}">₹${sg(prs,0)}</span></span>`;
  const _aN=((D&&D.state.setups)||[]).filter(x=>(x.grade==="A"||x.grade==="A+")&&String(x.status||"").toUpperCase()!=="WATCH").length;const _gc=(D&&D.counts)||{};((D&&D.state.counters)||[]).forEach(c=>{c=Object.assign({},c);if(c.k==="GRADED TODAY"&&_gc.graded!=null)c.v=String(_gc.graded);if(c.k==="A / A+")c.v=String(Math.max(_aN,parseInt((_gc.a_or_a_plus!=null?_gc.a_or_a_plus:c.v))||0));h+=`<span class="ctr"><span class="k">${esc(c.k)}</span><span class="v ${c.tone==="pink"?"p":c.tone==="green"?"g":c.tone==="amber"?"a":"b"}">${esc(c.v)}</span></span>`});
  $("ctrs").innerHTML=h;
 }
+function iceTime(t){
+ if(!t)return "—";
+ const s=String(t),m=s.match(/T(\d{2}:\d{2}:\d{2})/);
+ if(m)return m[1];
+ try{return new Date(s).toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour12:false})}catch(e){return s}
+}
+function renderIceberg(){
+ const ice=(D&&D.iceberg)||((D&&D.state&&D.state.iceberg))||{};
+ const rows=(ice.rows||ice.recent||ice.active||[]).slice().sort((a,b)=>String(b.ts||b.first_ts||"").localeCompare(String(a.ts||a.first_ts||""))).slice(0,15);
+ const by=ice.by_signal||{};
+ const sigs=Object.keys(by).sort().map(k=>esc(k)+" "+by[k]).join(" · ");
+ const n=ice.detections_today!=null?ice.detections_today:rows.length;
+ $("icebergN").innerHTML=`<span class="info">INFO ONLY · not a setup</span> · today ${esc(n)}${sigs?" · "+sigs:""}`;
+ if(!rows.length){$("iceberg").innerHTML='<div class="m">Aaj abhi koi iceberg detection nahi.</div>';return}
+ $("iceberg").innerHTML=`<table><tr><th>TIME IST</th><th>SYMBOL</th><th>SIDE</th><th>PRICE</th><th>SIGNAL(S)</th><th>CONF</th><th>EXEC vs VIS</th></tr>`+
+  rows.map(r=>{
+   const side=String(r.side||"");
+   const sc=/buyer/i.test(side)?"buyer":(/seller/i.test(side)?"seller":"dm");
+   const conf=String(r.confidence||"").toLowerCase();
+   const nx=r.exec_multiple!=null?Number(r.exec_multiple).toFixed(1)+"x":"—";
+   const vis=r.visible_size!=null?Number(r.visible_size).toLocaleString("en-IN"):"—";
+   const exe=r.executed_est!=null?Number(r.executed_est).toLocaleString("en-IN"):"—";
+   const sig=(r.signals||[]).join(", ")||"—";
+   const px=r.price==null?"—":Number(r.price).toLocaleString("en-IN",{maximumFractionDigits:2});
+   return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts||r.first_ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${sc}">${esc(side)}</td><td>${esc(px)}</td><td class="dm">${esc(sig)}</td><td class="conf-${esc(conf)}">${esc(r.confidence||"—")}</td><td><span class="nx">${esc(nx)}</span> <span class="m">${esc(exe)}/${esc(vis)}</span></td></tr>`;
+  }).join("")+`</table>`;
+}
 function renderNews(){
- const st=(D&&D.state)||{};$("newsAsOf").textContent="last 1 hr";
+ const st=(D&&D.state)||{};$("newsAsOf").textContent=st.news_as_of?"as of "+st.news_as_of:"";
  const mk={bullish:["▲","g"],bearish:["▼","p"],neutral:["●","a"]};
- const _now=new Date(Date.now()+(330+new Date().getTimezoneOffset())*60000),_nm=_now.getHours()*60+_now.getMinutes();
- const _nl=(st.news||[]).filter(n=>{if(["RESULTS","BTST","SESSION"].includes(String(n.tag||"").toUpperCase()))return false;if(n.date&&n.date!==_now.toISOString().slice(0,10)&&n.date!==`${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,"0")}-${String(_now.getDate()).padStart(2,"0")}`)return false;const m=/^(\d{1,2}):(\d{2})/.exec(String(n.time||""));if(!m)return false;const a=_nm-(+m[1]*60+ +m[2]);return a>=0&&a<=60});
- $("news").innerHTML=_nl.map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(String(n.source||"").slice(0,40))}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">Pichhle 1 ghante me koi news nahi</div>';
+ $("news").innerHTML=(st.news||[]).map(n=>{const m=mk[n.dir]||mk.neutral;return `<div class="nmeta">${esc(n.time)} · <span class="${m[1]}">${m[0]}</span> ${esc(n.tag)}<br>${esc(n.source||"")}</div><div><div class="nhi">${esc(n.hi)}</div><div class="nim ${m[1]}">${esc(n.impact||"")}</div></div>`}).join("")||'<div class="m">No news</div>';
 }
 function setupCard(s,watch){
  const q=L[s.symbol],risk=Math.abs((s.entry||0)-(s.sl||0)),sgn=s.side==="LONG"?1:-1;
@@ -210,11 +248,11 @@ function renderBtst(){
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
- $("paperU").innerHTML="";/* user rule 11 Nov: no open/unrealised P&L; legacy: open ₹${u.pnl} */
+ $("paperU").innerHTML=`open <span class="${cl(u.pnl)}">₹${sg(u.pnl,0)}</span>`;
  let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">BOOKED <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">TOTAL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`;
  const op=p.open||[],td=p.today||[];
- h+=`<table><tr><th>OPEN</th><th>LOTS</th><th>FILL</th><th>LTP</th><th>SL</th><th>T1</th><th>T2</th><th>STATUS</th></tr>`+(op.map(o=>{const c2c=o.c2c||o.cost_moved||o.t1_done;const lotsLbl=`${o.qtyOpenLots??o.lots??1}${c2c?' <span class="a">C2C</span>':''}`;return `<tr><td><span class="${o.side==="LONG"?"g":"p"}">${o.side==="LONG"?"▲":"▼"}</span> ${esc(o.mode==="option"&&o.contract?o.contract.replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):o.symbol)}</td><td>${lotsLbl}</td><td>${f(o.fill)}</td><td>${f(o.ltp)}</td><td class="p">${f(o.sl)}${c2c?' <span class="a">C2C</span>':''}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="m">open · P&amp;L on SL/TP</td></tr>`}).join("")||`<tr><td colspan="8" class="m">no open positions</td></tr>`)+`</table>`;
- if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`}).join("")+`</table>`;
+ h+=`<table><tr><th>OPEN</th><th>LOTS</th><th>FILL</th><th>LTP</th><th>SL</th><th>T1</th><th>T2</th><th>uPnL</th></tr>`+(op.map(o=>{const c2c=o.c2c||o.cost_moved||o.t1_done;const lotsLbl=`${o.qtyOpenLots??o.lots??1}${c2c?' <span class="a">C2C</span>':''}`;return `<tr><td><span class="${o.side==="LONG"?"g":"p"}">${o.side==="LONG"?"▲":"▼"}</span> ${esc(o.mode==="option"&&o.contract?o.contract.replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):o.symbol)}</td><td>${lotsLbl}</td><td>${f(o.fill)}</td><td>${f(o.ltp)}</td><td class="p">${f(o.sl)}${c2c?' <span class="a">C2C</span>':''}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="${cl(o.uPnl)}">₹${sg(o.uPnl,0)} ${o.uR!=null?sg(o.uR)+"R":""}</td></tr>`}).join("")||`<tr><td colspan="8" class="m">no open positions</td></tr>`)+`</table>`;
+ if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";const note=x.note||x.close_note||"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`+(note?`<tr><td colspan="5" class="dm" style="white-space:normal">${esc(x.reason?x.reason+" — ":"")}${esc(note)}</td></tr>`:"")}).join("")+`</table>`;
  $("paper").innerHTML=h;
 }
 function renderLog(){
@@ -246,7 +284,7 @@ async function refresh(){
  if(l.status==="fulfilled"){L=l.value.quotes||{};ltpAge=l.value.age_s;quoteAsOf=l.value.updated;lastOk=Date.now()}
  if(d.status==="fulfilled")D=d.value;
  if(c.status==="fulfilled"&&c.value)bars=(c.value.bars||[]).map(x=>{const dt=new Date(x.time*1000+TZS);return {t:dt.toISOString().slice(0,16).replace("T"," "),o:x.open,h:x.high,l:x.low,c:x.close}});
- for(const fn of [renderCounters,renderNews,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
+ for(const fn of [renderCounters,renderNews,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
  renderLive();$("upd").textContent="poll "+ist()+" IST · quotes asof "+(quoteAsOf?quoteAsOf.slice(11,19)+" IST":"unavailable")+(D&&D.graded_last_run?" · graded "+D.graded_last_run.slice(11):"");
  }finally{inFlight=false}
 }
