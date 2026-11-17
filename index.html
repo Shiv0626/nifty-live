@@ -366,7 +366,8 @@ function iceSigTable(rows, cols){
   const dc=/SELL/i.test(dir)?"sell":(/BUY/i.test(dir)?"buy":"dm");
   const st=String(r.status||"");
   const sltxt=(st==="T1_DONE"&&r.sl!=null)?(String(r.sl)+" cost"):(r.sl??"—");
-  const rr=r.r!=null?sg(Number(r.r),2)+"R":"—";
+  const pR0=icePremR(r);
+  const rr=pR0!=null?sg(pR0,2)+"R":(r.r!=null?sg(Number(r.r),2)+"R":"—");
   const rlab=r.r_label||(r.pnl_mode==="option_premium"?"premium R (fill basis)":(r.pnl_mode==="premium_na"?"spot R":""));
   let pn="";
   if(r.pnl_mode==="premium_na") pn="premium n/a";
@@ -382,7 +383,8 @@ function iceSigTable(rows, cols){
   if(x1!=null&&x2!=null) xP=sg(Number(x1),2)+(Number(x1)===Number(x2)?"":"/"+sg(Number(x2),2));
   else if(x1!=null) xP=sg(Number(x1),2)+(xL!=null?" / ltp "+sg(Number(xL),2):"");
   else if(xL!=null) xP="ltp "+sg(Number(xL),2);
-  const optLine=r.pnl_mode==="premium_na"?"premium n/a":(optHead?(eP?`${optHead} · E ${eP}${xP?` → ${xP}`:""}`:optHead):"");
+  const pLv=r.exit_basis==="premium"&&r.premium_sl!=null?` · PSL ${esc(String(r.premium_sl))}${st==="T1_DONE"&&r.premium_sl_now!=null?"→"+esc(String(r.premium_sl_now)):""} · PT1 ${esc(String(r.premium_t1??"—"))} · PT2 ${esc(String(r.premium_t2??"—"))}`:"";
+  const optLine=r.pnl_mode==="premium_na"?"premium n/a":(optHead?(eP?`${optHead} · E ${eP}${xP?` → ${xP}`:""}${pLv}`:optHead+pLv):"");
   return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}</td><td class="opt">${esc(rr)}${pn&&r.pnl_mode!=="premium_na"?" "+pn:""}${r.pnl_mode==="premium_na"?` <span class="m">premium n/a</span>`:""}${rlab?` <span class="m">${esc(rlab)}</span>`:""}${optLine?`<div class="m">${optLine}</div>`:""}</td></tr>`;
  }).join("");
  return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
@@ -421,6 +423,23 @@ function iceOptLine(r){
  if(r.r_label) bits.push(`<span class="m">${esc(r.r_label)}</span>`);
  return `<div class="lv optline"><span class="m">OPT ${bits.join(" · ")}</span></div>`;
 }
+function icePremLine(r){
+ if(r.exit_basis!=="premium"||r.premium_sl==null) return "";
+ const st=String(r.status||"").toUpperCase();
+ const cost=st==="T1_DONE"&&r.premium_sl_now!=null&&Number(r.premium_sl_now)!==Number(r.premium_sl);
+ const rk=r.premium_risk!=null?Number(r.premium_risk):null;
+ const rs=rk&&r.lot?" · ₹"+Math.round(rk*r.lot*(r.lots||2)):"";
+ return `<div class="lv premLv"><span class="m">PREM SL <b class="p">${f(r.premium_sl)}</b>${cost?` → cost <b class="dm">${f(r.premium_sl_now)}</b>`:""}</span><span class="m">P-T1 <b class="g">${f(r.premium_t1)}</b></span><span class="m">P-T2 <b class="g">${r.premium_t2!=null?f(r.premium_t2):"—"}</b></span><span class="m">R on premium${rk?" (1R "+f(rk)+"/unit"+rs+")":""}</span></div>`;
+}
+function icePremR(r){
+ if(r.exit_basis!=="premium") return null;
+ const st=String(r.status||"").toUpperCase();
+ if(st==="CLOSED") return r.r!=null?Number(r.r):null;
+ if(r.uR!=null) return Number(r.uR);
+ const rk=Number(r.premium_risk), pe=Number(r.premium_entry), lp=Number(r.premium_ltp);
+ if(rk>0&&!isNaN(pe)&&!isNaN(lp)) return (lp-pe)/rk;
+ return null;
+}
 function icebergCard(r){
  const dir=String(r.direction||"");
  const buy=!/SELL/i.test(dir);
@@ -430,7 +449,9 @@ function icebergCard(r){
  const entry=r.entry, sl=r.orig_sl!=null?r.orig_sl:r.sl, t1=r.t1, t2=(+r.t2>0)?r.t2:null;
  const risk=Math.abs((entry||0)-(sl||0)), sgn=buy?1:-1;
  let liveR=null;
- if(!armed&&st!=="CLOSED"&&q&&risk) liveR=sgn*(q.ltp-entry)/risk;
+ const pR=armed?null:icePremR(r);
+ if(pR!=null) liveR=pR;
+ else if(!armed&&st!=="CLOSED"&&q&&risk) liveR=sgn*(q.ltp-entry)/risk;
  else if(st==="CLOSED"&&r.r!=null) liveR=Number(r.r);
  const badgeSt=armed?"a":(st==="OPEN"||st==="T1_DONE"?"g":"m");
  let badge=`<span class="tagIce">ICEBERG · paper</span> <span class="badge ${badgeSt}" style="border:1px ${armed?"dotted":"solid"} currentColor">${armed?"ARMED":esc(st)}${r.outcome&&st==="CLOSED"?" · "+esc(r.outcome):""}${r.backfill?' <span class="bf">backfill</span>':""}</span>`;
@@ -442,6 +463,7 @@ function icebergCard(r){
  return `<div class="card${cls}"><div class="h"><span><b class="${buy?"g":"p"}">${buy?"▲":"▼"} ${esc(r.symbol)}</b> ${badge} <span class="m">${esc(r.time_ist||"")}</span></span>
  <span>${q?f(q.ltp):"—"}${liveR==null?"":` <b class="${cl(liveR)}">${liveR>0?"+":""}${liveR.toFixed(2)}R</b>`}</span></div>
  ${lv}
+ ${armed?"":icePremLine(r)}
  ${armed?"":iceOptLine(r)}
  ${note?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(note)}</div>`:""}
  ${stockNewsHtml({symbol:r.symbol})}
