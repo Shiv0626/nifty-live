@@ -668,21 +668,59 @@ function renderGraded(){
 let heatMode=(new URLSearchParams(location.search).get("heat"))||localStorage.getItem("heatMode")||"nifty";if(heatMode!=="sector")heatMode="nifty";
 let SECT=null;
 $("heatBtn").onclick=()=>{heatMode=heatMode==="sector"?"nifty":"sector";localStorage.setItem("heatMode",heatMode);renderHeat();if(heatMode==="sector")loadSect().then(renderHeat)};
-async function loadSect(){try{const r=await api("/api/sectors");if(r&&r.sectors&&r.sectors.length)SECT=r;else if(SECT)SECT.err=(r&&r.err)||"no data"}catch(e){if(SECT)SECT.err="fetch failed"}}
+function quotePct(q){
+ if(!q) return null;
+ const p=Number(q.pct);
+ if(q.pct!=null&&q.pct!==""&&!isNaN(p)) return p;
+ const ltp=Number(q.ltp), prev=Number(q.prev_close!=null?q.prev_close:q.close);
+ if(!prev||isNaN(ltp)) return null;
+ return (ltp-prev)/prev*100;
+}
+function heatAsOf(){
+ const t=quoteAsOf?String(quoteAsOf):"";
+ const hm=t.length>=19?t.slice(11,19):ist();
+ return hm?("as of "+hm+" IST"):"";
+}
+function heatQuotes(){
+ const sec=(D&&D.state&&D.state.sectors)||{};
+ const out=[];
+ Object.values(L||{}).forEach(q=>{
+  if(!q||!q.symbol||q.symbol==="NIFTY"||q.symbol==="INDIAVIX"||/\d(CE|PE)$/.test(q.symbol)) return;
+  const pct=quotePct(q); if(pct==null||q.ltp==null) return;
+  out.push(Object.assign({},q,{pct:pct}));
+ });
+ const mapped=out.filter(q=>sec[q.symbol]);
+ return {sec, qs: mapped.length?mapped:out};
+}
+async function loadSect(){try{const r=await api("/api/sectors");if(r)SECT=r;else if(SECT)SECT.err="no data"}catch(e){if(SECT)SECT.err="fetch failed"}}
+function sectorAsOf(){
+ const t=(SECT&&(SECT.as_of||SECT.fetched||SECT.nse_ts))||"";
+ if(!t)return heatAsOf();
+ const m=String(t).match(/(\d{2}:\d{2}:\d{2})/);
+ return "as of "+(m?m[1]:t)+" IST";
+}
 function renderSect(){
+ // Official sector INDEX LTP vs previous session close (from /api/sectors).
+ // Do not fall back to a prior-session snapshot; empty beats stale.
  $("heatT").textContent="SECTOR HEAT";$("heatBtn").textContent="NIFTY 50";
- const a=((SECT&&SECT.sectors)||[]).filter(x=>x.pct!=null).sort((x,y)=>y.pct-x.pct);
- const up=a.filter(x=>x.pct>0).length;$("breadth").innerHTML=a.length?`<span class="g">${up}↑</span> <span class="p">${a.length-up}↓</span> <span class="dm">${esc(SECT.nse_ts||SECT.fetched||"")}${SECT.err?" · stale":""}</span>`:"";
- $("heat").innerHTML=a.map(x=>`<a class="tile" style="background:${heatBg(x.pct)}" href="https://www.tradingview.com/search/?query=${encodeURIComponent(x.name)}" target="_blank" rel="noreferrer"><b>${esc(x.name.replace(/^NIFTY /,""))}</b><br>${f(x.last)} ${sg(x.pct)}%</a>`).join("")||'<div class="m">sector data unavailable — retrying</div>';
+ const a=((SECT&&SECT.sectors)||[]).filter(x=>x&&x.pct!=null).slice().sort((x,y)=>y.pct-x.pct);
+ const up=a.filter(x=>x.pct>0).length;
+ const as=sectorAsOf();
+ $("breadth").innerHTML=a.length?`<span class="g">${up}↑</span> <span class="p">${a.length-up}↓</span> <span class="dm">${esc(as)} · vs prev close</span>`:`<span class="dm">${esc(as)||"waiting for live sector quotes"}</span>`;
+ $("heat").innerHTML=a.map(x=>{
+  const raw=String(x.name||""), stripped=raw.replace(/^NIFTY\s+/,""), label=(stripped && stripped!=="50")?stripped:raw;
+  return `<a class="tile" style="background:${heatBg(x.pct)}" href="#" onclick="return false"><b>${esc(label)}</b><br>${f(x.last)} ${sg(x.pct)}%</a>`;
+ }).join("")||'<div class="m">waiting for live sector quotes</div>';
 }
 function renderHeat(){
  if(heatMode==="sector")return renderSect();
  $("heatT").textContent="NIFTY 50 HEAT";$("heatBtn").textContent="SECTOR";
- const sec=((D&&D.state.sectors)||{}),qs=Object.values(L).filter(q=>q&&q.pct!=null&&sec[q.symbol]);
- const by={};qs.forEach(q=>(by[sec[q.symbol]]=by[sec[q.symbol]]||[]).push(q));
+ const {sec,qs}=heatQuotes();
+ const by={};qs.forEach(q=>(by[sec[q.symbol]||"OTHERS"]=by[sec[q.symbol]||"OTHERS"]||[]).push(q));
  const groups=Object.entries(by).map(([n,a])=>({n,a:a.sort((x,y)=>y.pct-x.pct),avg:a.reduce((s,x)=>s+x.pct,0)/a.length})).sort((x,y)=>y.avg-x.avg);
- const up=qs.filter(q=>q.pct>0).length;$("breadth").innerHTML=`<span class="g">${up}↑</span> <span class="p">${qs.length-up}↓</span>`;
- $("heat").innerHTML=groups.map(g=>`<div class="sec">${esc(g.n)} <span class="${cl(g.avg)}">${sg(g.avg)}%</span></div>`+g.a.map(q=>`<a class="tile" style="background:${heatBg(q.pct)}" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b><br>${f(q.ltp)} ${sg(q.pct)}%</a>`).join("")).join("");
+ const up=qs.filter(q=>q.pct>0).length; const as=heatAsOf();
+ $("breadth").innerHTML=`<span class="g">${up}↑</span> <span class="p">${qs.length-up}↓</span> <span class="dm">${esc(as)}</span>`;
+ $("heat").innerHTML=groups.map(g=>`<div class="sec">${esc(g.n)} <span class="${cl(g.avg)}">${sg(g.avg)}%</span></div>`+g.a.map(q=>`<a class="tile" style="background:${heatBg(q.pct)}" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b><br>${f(q.ltp)} ${sg(q.pct)}%</a>`).join("")).join("")||'<div class="m">waiting for live quotes</div>';
 }
 function renderBtst(){
  const b=(D&&D.state&&D.state.btst)||{},p=b.picks||[];$("btstN").textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
