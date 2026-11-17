@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#131722"/>
-<script>(function(){var q=new URLSearchParams(location.search);if(q.get('go')==='chart'){q.delete('go');location.replace('chart.html?'+q.toString())}})()</script>
+<script>(function(){var q=new URLSearchParams(location.search);if(q.get('go')==='chart'){q.delete('go');var fb=function(){location.replace('chart.html?'+q.toString())},t=setTimeout(fb,2500);fetch('host.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){if(j&&j.host){clearTimeout(t);location.replace(j.host+(q.get('tab')==='option'?'/?':'/pro?')+q.toString())}}).catch(function(){})}})()</script>
 <title>Nifty 50 Setup Dashboard · Live</title>
 <style>
 :root{--bg:#131722;--panel:#1e222d;--panel2:#191c27;--border:#2a2e39;--blue:#4CC9F0;--accent:#2962FF;--green:#00E5A0;--pink:#FF2D95;--amber:#F5A623;--muted:#6B7280;--text:#D1D4DC;--dim:#9CA3AF;--hair:#2a2e39;
@@ -318,6 +318,19 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
  <div class="foot"><span id="upd">—</span><span>GitHub data ~30s · tunnel live ho to ~2s · IST · paper/demo only</span></div>
 </div>
 <div id="brokerModal"><div class="modalbox"><div class="h" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 id="brokerModalTitle">Connect</h2><button type="button" class="btn" id="brokerModalClose">Close</button></div><div id="brokerModalBody"></div></div></div>
+<script>
+/* Chart buttons -> live Pro chart (drawing tools + indicators) on the tunnel host. Falls back to chart.html when no tunnel. */
+(function(){
+ var hj=null;
+ function load(){fetch('host.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){hj=j&&j.host||null}).catch(function(){})}
+ load();setInterval(load,60000);
+ function host(){try{var s=window.NL&&NL.status();if(s&&s.host)return s.host}catch(e){}return hj}
+ function fix(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html?"]');if(!a)return;var h=host();if(!h)return;
+  var u=new URL(a.getAttribute('href'),location.href),q=u.searchParams,opt=q.get('tab')==='option';a.href=h+(opt?'/?':'/pro?')+q.toString();}
+ ['pointerdown','touchstart','mouseover','focusin','click'].forEach(function(ev){document.addEventListener(ev,fix,{capture:true,passive:true})});
+ window.__proHost=host;
+})();
+</script>
 <script src="nl-data.js?v=fefc016f"></script>
 <script>
 (function(){
