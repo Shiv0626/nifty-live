@@ -245,6 +245,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
        <div>
         <div class="aaSub">DEMO TRADES · this book's P&amp;L</div>
         <div class="scroll" id="paper"></div>
+        <div class="aaSub" style="margin-top:6px">WATCH-LONG DEMO · near-A BUY (CE) · <span class="info">NOT A/A+</span></div>
+        <div class="scroll" id="paperWL"></div>
        </div>
       </div>
       <div class="panel" id="gradedP">
@@ -775,6 +777,17 @@ function renderPaper(){
  if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";const note=x.note||x.close_note||"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`+(note?`<tr><td colspan="5" class="dm" style="white-space:normal">${esc(x.reason?x.reason+" — ":"")}${esc(note)}</td></tr>`:"")}).join("")+`</table>`;
  $("paper").innerHTML=h;
 }
+function renderWatchLong(){
+ const el=$("paperWL"); if(!el) return;
+ const w=(D&&D.state&&D.state.watch_long)||(D&&D.watch_long)||null;
+ if(!w){el.innerHTML='<div class="m">WATCH-LONG book abhi data nahi.</div>';return}
+ const d=w.day||{},t=w.total||{},op=w.open||[],td=w.today||[];
+ let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">TODAY <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">ALL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`;
+ const nm=c=>c?String(c).replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):"";
+ h+=`<table><tr><th>OPEN · LONG</th><th>LOTS</th><th>FILL</th><th>SL</th><th>T1</th><th>T2</th><th>GATE</th></tr>`+(op.map(o=>`<tr><td><span class="g">▲</span> ${esc(nm(o.contract)||o.symbol)}</td><td>${o.qtyOpenLots??o.lots??2}${o.c2c?' <span class="a">C2C</span>':''}</td><td>${f(o.fill)}</td><td class="p">${f(o.sl)}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="${o.gateOk?"g":"dm"}">${o.gateOk?"pass":"blocked"}</td></tr>`).join("")||`<tr><td colspan="7" class="m">no open WATCH-LONG demo</td></tr>`)+`</table>`;
+ if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED · LONG</th><th>TIME</th><th>EXIT</th><th>P&amp;L</th></tr>`+td.map(x=>`<tr><td><span class="g">▲</span> ${esc(nm(x.contract)||x.symbol)}</td><td>${esc(x.time||"")}</td><td class="dm">${esc(x.reason||"")}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`).join("")+`</table>`;
+ el.innerHTML=h;
+}
 function renderLog(){
  const qs=Object.values(L).filter(q=>q&&q.pct!=null&&q.symbol!=="NIFTY"&&q.symbol!=="INDIAVIX"&&!/\d(CE|PE)$/.test(q.symbol)).sort((a,b)=>b.pct-a.pct);
  const ch=q=>`<a class="tile" style="background:${heatBg(q.pct)};display:inline-block;margin:0 3px 3px 0" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b> ${sg(q.pct)}%</a>`;
@@ -824,7 +837,7 @@ async function refresh(){
  if(l.status==="fulfilled"){L=l.value.quotes||{};ltpAge=l.value.age_s;quoteAsOf=l.value.updated;lastOk=Date.now()}
  if(d.status==="fulfilled")D=d.value;
  if(c.status==="fulfilled"&&c.value)bars=(c.value.bars||[]).map(x=>{const dt=new Date(x.time*1000+TZS);return {t:dt.toISOString().slice(0,16).replace("T"," "),o:x.open,h:x.high,l:x.low,c:x.close}});
- for(const fn of [renderCounters,renderNews,renderNewsMovers,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
+ for(const fn of [renderCounters,renderNews,renderNewsMovers,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderWatchLong,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
  try{renderWatchlist()}catch(e){console.error(e)} try{renderPortfolio()}catch(e){console.error(e)} if(typeof renderBtst==="function"){try{renderBtst()}catch(e){console.error(e)}} else {try{renderBtstLocal()}catch(e){}}
  renderLive();$("upd").textContent="poll "+ist()+" IST · quotes asof "+(quoteAsOf?quoteAsOf.slice(11,19)+" IST":"unavailable")+(D&&D.graded_last_run?" · graded "+D.graded_last_run.slice(11):"");
  }finally{inFlight=false}
