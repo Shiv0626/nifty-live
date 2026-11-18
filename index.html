@@ -383,6 +383,7 @@ function iceTime(t){
  if(m)return m[1];
  try{return new Date(s).toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour12:false})}catch(e){return s}
 }
+function iceInv(r){return r&&r.inverted?` <span class="bf" title="${esc(r.invert_why||("inverted: signal "+(r.signal_direction||"")+" → traded opposite"))}">INV${r.signal_direction?" of "+esc(r.signal_direction):""}</span>`:""}
 function iceSigTable(rows, cols){
  if(!rows||!rows.length)return "";
  const th=cols.map(c=>`<th>${c[0]}</th>`).join("");
@@ -410,7 +411,7 @@ function iceSigTable(rows, cols){
   else if(xL!=null) xP="ltp "+sg(Number(xL),2);
   const pLv=r.exit_basis==="premium"&&r.premium_sl!=null?` · PSL ${esc(String(r.premium_sl))}${st==="T1_DONE"&&r.premium_sl_now!=null?"→"+esc(String(r.premium_sl_now)):""} · PT1 ${esc(String(r.premium_t1??"—"))} · PT2 ${esc(String(r.premium_t2??"—"))}`:"";
   const optLine=r.pnl_mode==="premium_na"?"premium n/a":(optHead?(eP?`${optHead} · E ${eP}${xP?` → ${xP}`:""}${pLv}`:optHead+pLv):"");
-  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}${r.invalid||st==="INVALID_DAY"?` <span class="bf">invalid 17 Nov</span>`:""}</td><td class="opt">${esc(rr)}${pn&&r.pnl_mode!=="premium_na"?" "+pn:""}${r.pnl_mode==="premium_na"?` <span class="m">premium n/a</span>`:""}${rlab?` <span class="m">${esc(rlab)}</span>`:""}${optLine?`<div class="m">${optLine}</div>`:""}</td></tr>`;
+  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}${iceInv(r)}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}${r.invalid||st==="INVALID_DAY"?` <span class="bf">invalid 17 Nov</span>`:""}</td><td class="opt">${esc(rr)}${pn&&r.pnl_mode!=="premium_na"?" "+pn:""}${r.pnl_mode==="premium_na"?` <span class="m">premium n/a</span>`:""}${rlab?` <span class="m">${esc(rlab)}</span>`:""}${optLine?`<div class="m">${optLine}</div>`:""}</td></tr>`;
  }).join("");
  return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
 }
@@ -480,7 +481,7 @@ function icebergCard(r){
  else if(!armed&&st!=="CLOSED"&&q&&risk) liveR=sgn*(q.ltp-entry)/risk;
  else if(st==="CLOSED"&&r.r!=null) liveR=Number(r.r);
  const badgeSt=armed?"a":(st==="OPEN"||st==="T1_DONE"?"g":"m");
- let badge=`<span class="tagIce">ICEBERG · paper</span> <span class="badge ${badgeSt}" style="border:1px ${armed?"dotted":"solid"} currentColor">${armed?"ARMED":esc(st)}${r.outcome&&st==="CLOSED"?" · "+esc(r.outcome):""}${r.backfill?' <span class="bf">backfill</span>':""}</span>`;
+ let badge=`<span class="tagIce">ICEBERG · paper</span>${iceInv(r)} <span class="badge ${badgeSt}" style="border:1px ${armed?"dotted":"solid"} currentColor">${armed?"ARMED":esc(st)}${r.outcome&&st==="CLOSED"?" · "+esc(r.outcome):""}${r.backfill?' <span class="bf">backfill</span>':""}</span>`;
  const cls=" iceberg"+(armed?" watch":"")+(st==="CLOSED"?" closed":"");
  const note=armed?(r.awaiting||dir):"";
  const lv=armed
@@ -547,7 +548,7 @@ function iceBookTables(sig){
   const pnl=iceRowPnl(r), rr=iceRowR(r);
   const pn=pnl==null?"—":("₹"+sg(pnl,0));
   const rs=rr==null?"—":sg(rr,2)+"R";
-  return `<tr><td><span class="${/SELL/i.test(dir)?"p":"g"}">${/SELL/i.test(dir)?"▼":"▲"}</span> ${esc(r.symbol||"")}</td><td>${esc(dir)}</td><td style="white-space:normal">${esc(r.contract||"—")}</td><td>${esc(lots)}</td><td>${r.premium_entry==null?"—":iceNum(r.premium_entry,2)}</td><td>${iceExitPx(r)}</td><td class="${pnl==null?"dm":cl(pnl)}">${pn}</td><td class="${rr==null?"dm":cl(rr)}">${rs}</td><td>${esc(iceRowWhy(r))}</td></tr>`;
+  return `<tr><td><span class="${/SELL/i.test(dir)?"p":"g"}">${/SELL/i.test(dir)?"▼":"▲"}</span> ${esc(r.symbol||"")}</td><td>${esc(dir)}${iceInv(r)}</td><td style="white-space:normal">${esc(r.contract||"—")}</td><td>${esc(lots)}</td><td>${r.premium_entry==null?"—":iceNum(r.premium_entry,2)}</td><td>${iceExitPx(r)}</td><td class="${pnl==null?"dm":cl(pnl)}">${pn}</td><td class="${rr==null?"dm":cl(rr)}">${rs}</td><td>${esc(iceRowWhy(r))}</td></tr>`;
  };
  const th=`<tr><th>SYMBOL</th><th>SIDE</th><th>OPTION</th><th>LOTS</th><th>ENTRY</th><th>EXIT</th><th>₹ P&amp;L</th><th>R</th><th>STATUS</th></tr>`;
  let h=`<div class="aaSub">DEMO TRADES · this book's P&amp;L (option premium)</div>`;
