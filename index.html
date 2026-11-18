@@ -108,9 +108,14 @@ html,body{overflow:hidden}
 #iceSig td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap;vertical-align:baseline}
 #iceSig td.opt,#iceSig td:nth-child(3),#iceSig th:nth-child(3){white-space:normal;overflow-wrap:anywhere}
 #iceSig .buy{color:var(--green)}#iceSig .sell{color:var(--pink)}
-#iceSig .st-ARMED{color:var(--amber)}#iceSig .st-OPEN{color:var(--green)}#iceSig .st-T1_DONE{color:var(--amber)}#iceSig .st-CLOSED{color:var(--dim)}#iceSig .st-SKIPPED,.st-EXPIRED,.st-INVALID{color:var(--muted)}
+#iceSig .st-ARMED{color:var(--amber)}#iceSig .st-OPEN{color:var(--green)}#iceSig .st-T1_DONE{color:var(--amber)}#iceSig .st-CLOSED{color:var(--dim)}#iceSig .st-SKIPPED,.st-EXPIRED,.st-INVALID,.st-INVALID_DAY{color:var(--muted)}
 #iceSig .bf{color:var(--amber);font-size:8px;letter-spacing:.08em;margin-left:4px}
 #iceSigWrap{overflow-x:auto;max-width:100%;min-width:0}
+#iceSig .iceBookTabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:5px;margin:6px 0 4px}
+#iceSig .iceBookBtn{background:#0b1514;border:1px solid #1F5E5C;border-radius:4px;color:var(--muted);font:inherit;font-size:10px;text-align:left;padding:5px 7px;cursor:pointer;line-height:1.45;white-space:normal}
+#iceSig .iceBookBtn b.bn{color:#3DDBD9;font-size:12px;letter-spacing:.08em;margin-right:4px}
+#iceSig .iceBookBtn.on{border-color:#3DDBD9;box-shadow:inset 3px 0 0 #3DDBD9;background:#0f2120;color:var(--text)}
+#iceSig .iceBookDesc{font-size:10px;color:var(--muted);margin:0 0 4px;white-space:normal}
 #iceSig .iceCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:5px}
 #iceSig .card.iceberg{border-color:#1F5E5C;box-shadow:inset 3px 0 0 #3DDBD9;margin-bottom:0}
 #iceSig .card.iceberg.watch{border-style:dotted;border-color:#3DDBD9}
@@ -398,7 +403,7 @@ function iceSigTable(rows, cols){
   else if(xL!=null) xP="ltp "+sg(Number(xL),2);
   const pLv=r.exit_basis==="premium"&&r.premium_sl!=null?` · PSL ${esc(String(r.premium_sl))}${st==="T1_DONE"&&r.premium_sl_now!=null?"→"+esc(String(r.premium_sl_now)):""} · PT1 ${esc(String(r.premium_t1??"—"))} · PT2 ${esc(String(r.premium_t2??"—"))}`:"";
   const optLine=r.pnl_mode==="premium_na"?"premium n/a":(optHead?(eP?`${optHead} · E ${eP}${xP?` → ${xP}`:""}${pLv}`:optHead+pLv):"");
-  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}</td><td class="opt">${esc(rr)}${pn&&r.pnl_mode!=="premium_na"?" "+pn:""}${r.pnl_mode==="premium_na"?` <span class="m">premium n/a</span>`:""}${rlab?` <span class="m">${esc(rlab)}</span>`:""}${optLine?`<div class="m">${optLine}</div>`:""}</td></tr>`;
+  return `<tr><td class="dm">${esc(r.time_ist||iceTime(r.ts))}</td><td><b>${esc(r.symbol||"")}</b></td><td class="${dc}">${esc(dir||"—")}</td><td>${esc(r.iceberg_level??"—")}</td><td>${esc(r.entry??"—")}</td><td>${esc(sltxt)}</td><td>${esc(r.t1??"—")}</td><td>${esc(r.t2??"—")}</td><td class="st-${esc(st)}">${esc(st)}${r.backfill?` <span class="bf">backfill</span>`:""}${r.invalid||st==="INVALID_DAY"?` <span class="bf">invalid 17 Nov</span>`:""}</td><td class="opt">${esc(rr)}${pn&&r.pnl_mode!=="premium_na"?" "+pn:""}${r.pnl_mode==="premium_na"?` <span class="m">premium n/a</span>`:""}${rlab?` <span class="m">${esc(rlab)}</span>`:""}${optLine?`<div class="m">${optLine}</div>`:""}</td></tr>`;
  }).join("");
  return `<div class="iceSigWrap"><table><tr>${th}</tr>${body}</table></div>`;
 }
@@ -426,6 +431,7 @@ function iceOptLine(r){
  if(r.option_strike!=null) bits.push(esc((r.option_type||"")+" "+r.option_strike));
  if(r.lots&&r.lot) bits.push(esc(r.lots+"×"+r.lot));
  if(r.premium_entry!=null) bits.push(`E <b class="dm">${f(r.premium_entry)}</b>`);
+ if(r.entry_bid!=null&&r.entry_ask!=null) bits.push(`bid/ask <b class="dm">${f(r.entry_bid)}/${f(r.entry_ask)}</b>`);
  const ex=r.premium_exit!=null?r.premium_exit:null;
  if(ex!=null) bits.push(`→ <b class="dm">${f(ex)}</b>`);
  else if(r.premium_ltp!=null) bits.push(`LTP <b class="dm">${f(r.premium_ltp)}</b>`);
@@ -550,16 +556,31 @@ function iceStatsBlock(sig){
  h+=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">TODAY <b class="${cl(tp)}">₹${sg(tp,0)} / ${sg(tr,2)}R</b></span><span class="m">CLOSED / OPEN <b>${closed} / ${open}</b></span><span class="m">ALL <b class="${cl(ap)}">₹${sg(ap,0)} / ${sg(ar,2)}R</b></span><span class="m">WIN <b class="a">${iceWr(tod.win_rate)} (${tod.wins!=null?tod.wins+"W · ":""}${closed})</b></span></div>`;
  const bfN=(bf.closed_trades||0)+(bf.open_or_t1||0);
  if(bfN) h+=`<div class="m" style="margin:2px 0 4px">backfill excluded: ${bf.closed_trades||0} trades · ₹${sg(bf.total_pnl,0)} / ${sg(bf.total_r,2)}R (not in totals above)</div>`;
+ if(st.note) h+=`<div class="m" style="margin:2px 0 4px;color:#F5A524">${esc(st.note_text||st.note)}</div>`;
  if(all.premium_na_trades) h+=`<div class="m">${all.premium_na_trades} premium n/a (excluded from ₹ totals)</div>`;
  h+=iceBookTables(sig);
  return h;
 }
+let ICE_BOOK=(new URLSearchParams(location.search).get("book")||"").toUpperCase()||localStorage.getItem("iceBook")||"BASE";
+function iceBookTabs(sig){
+ const books=sig.books||{}, order=(sig.book_order||Object.keys(books)).filter(n=>books[n]);
+ if(!order.length) return "";
+ return `<div class="iceBookTabs">`+order.map(n=>{
+  const st=(books[n]||{}).stats||{}, t=st.today||{}, a=st.all||{};
+  return `<button type="button" class="iceBookBtn${n===ICE_BOOK?" on":""}" data-book="${esc(n)}"><b class="bn">${esc(n)}</b>today <b class="${cl(t.total_pnl)}">₹${sg(t.total_pnl,0)} / ${sg(t.total_r,2)}R</b><br>all <b class="${cl(a.total_pnl)}">₹${sg(a.total_pnl,0)} / ${sg(a.total_r,2)}R</b> · win ${iceWr(a.win_rate)} (${a.trades||0}) · open ${st.open_now||0}</button>`;
+ }).join("")+`</div>`;
+}
+document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest(".iceBookBtn");if(!b)return;ICE_BOOK=b.getAttribute("data-book")||"BASE";localStorage.setItem("iceBook",ICE_BOOK);try{renderIceberg()}catch(err){console.error(err)}});
 function renderIcebergSignals(sig){
  sig=sig||{};
- const armed=sig.armed||[];
- const rows=sig.rows||[];
- const skipped=sig.skipped_today||[];
- const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>`+iceStatsBlock(sig);
+ const books=sig.books||{};
+ if(!books[ICE_BOOK]) ICE_BOOK=books.BASE?"BASE":ICE_BOOK;
+ const view=books[ICE_BOOK]?Object.assign({},ICE_BOOK==="BASE"?sig:{},books[ICE_BOOK]):sig;
+ const armed=view.armed||[];
+ const rows=view.rows||[];
+ const skipped=view.skipped_today||[];
+ const bk=books[ICE_BOOK];
+ const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)${bk?" · "+esc(ICE_BOOK)+" book":""}</span><span class="info">PAPER ONLY · not A/A+</span></div>`+iceBookTabs(sig)+(bk?`<div class="iceBookDesc">${esc(bk.label||ICE_BOOK)} — ${esc(bk.desc||"")} · separate ledger, own −2R day stop</div>`:"")+iceStatsBlock(view);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
  if(!armed.length) body+=`<div class="m">Koi armed setup nahi.</div>`;
@@ -937,7 +958,7 @@ function renderPortfolio(){
  root.querySelector("#pfAaMeta").textContent=`win ${f(t.winRate,0)}% · ${t.trades||0} trades · open ${aaOpen}`;
  root.querySelector("#pfIceDay").innerHTML=`<b class="${cl(tod.total_pnl)}">₹${sg(tod.total_pnl,0)} / ${sg(tod.total_r,2)}R</b>`;
  root.querySelector("#pfIceAll").innerHTML=`<b class="${cl(all.total_pnl)}">₹${sg(all.total_pnl,0)} / ${sg(all.total_r,2)}R</b>`;
- root.querySelector("#pfIceMeta").textContent=`win ${iceWr(tod.win_rate)} · ${tod.trades||0} closed · open ${st.open_now||iceOpen}`;
+ root.querySelector("#pfIceMeta").textContent=`win ${iceWr(tod.win_rate)} · ${tod.trades||0} closed · open ${st.open_now||iceOpen}`+(st.note?` · ${st.note}`:"");
  const sumD=(Number(d.pnl)||0)+(Number(tod.total_pnl)||0);
  const sumA=(Number(t.pnl)||0)+(Number(all.total_pnl)||0);
  root.querySelector("#pfSumDay").innerHTML=`<b class="${cl(sumD)}">₹${sg(sumD,0)}</b>`;
