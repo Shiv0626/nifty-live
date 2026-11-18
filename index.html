@@ -580,7 +580,7 @@ function renderIcebergSignals(sig){
  const rows=view.rows||[];
  const skipped=view.skipped_today||[];
  const bk=books[ICE_BOOK];
- const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)${bk?" · "+esc(ICE_BOOK)+" book":""}</span><span class="info">PAPER ONLY · not A/A+</span></div>`+iceBookTabs(sig)+(bk?`<div class="iceBookDesc">${esc(bk.label||ICE_BOOK)} — ${esc(bk.desc||"")} · separate ledger, own −2R day stop</div>`:"")+iceStatsBlock(view);
+ const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)${bk?" · "+esc(ICE_BOOK)+" book":""}</span><span class="info">PAPER ONLY · not A/A+</span></div>`+iceBookTabs(sig)+(bk?`<div class="iceBookDesc">${esc(bk.label||ICE_BOOK)} — ${esc(bk.desc||"")} · separate ledger, no day stop</div>`:"")+iceStatsBlock(view);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
  if(!armed.length) body+=`<div class="m">Koi armed setup nahi.</div>`;
