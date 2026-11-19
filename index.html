@@ -76,6 +76,11 @@ html,body{overflow:hidden}
 #aaP .aaH{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;align-items:baseline;margin-bottom:3px;min-width:0}
 #aaP .aaH>span:first-child{color:#4CC9F0;letter-spacing:.12em;font-size:9px}
 #aaP .info{color:#4CC9F0;font-size:9px;letter-spacing:.08em}
+.varBoxes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:4px 0 6px}
+.varBox{border:1px solid var(--border);border-radius:6px;padding:6px;cursor:pointer;background:#0e1116;font-family:var(--mono);font-size:10px;min-width:0}
+.varBox.on{border-color:var(--accent)}.varBox h4{margin:0 0 4px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.varBox .kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 6px}.varBox .kv span{white-space:nowrap}
+@media (max-width:700px){.varBoxes{grid-template-columns:1fr}}
 #aaStats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
 #aaP .aaSub{color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
 #aaSetupRow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:start;min-width:0}
@@ -224,6 +229,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
    </div>
    <nav class="tabs" id="tabs">
     <button type="button" class="tabbtn on" data-tab="aa">A/A+ Setups</button>
+    <button type="button" class="tabbtn" data-tab="variants">Variants</button>
     <button type="button" class="tabbtn" data-tab="iceberg">Iceberg</button>
     <button type="button" class="tabbtn" data-tab="watch">WATCH</button>
     <button type="button" class="tabbtn" data-tab="news">News</button>
@@ -255,6 +261,11 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
        <div class="scroll" id="graded"></div>
       </div>
      </div>
+    </div>
+    <div class="tabpane panel" data-tab="variants" id="variantsP">
+     <div class="lbl"><span>VARIANT SHADOW BOOKS · PAPER ONLY · CAP2 / F1F4 vs A/A+</span><span class="info">shadows A/A+ me count nahi hote · apna −2R stop</span></div>
+     <div id="varBoxes" class="varBoxes"></div>
+     <div class="scroll" id="varTrades"></div>
     </div>
     <div class="tabpane panel" data-tab="iceberg" id="icebergP">
      <div class="lbl"><span>ICEBERG DETECTIONS</span><span id="icebergN"></span></div>
@@ -794,6 +805,28 @@ function renderWatchLong(){
  if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED · LONG</th><th>TIME</th><th>EXIT</th><th>P&amp;L</th></tr>`+td.map(x=>`<tr><td><span class="g">▲</span> ${esc(nm(x.contract)||x.symbol)}</td><td>${esc(x.time||"")}</td><td class="dm">${esc(x.reason||"")}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`).join("")+`</table>`;
  el.innerHTML=h;
 }
+let varSel=null;
+function renderVariants(){
+ const box=$("varBoxes"),tl=$("varTrades"); if(!box||!tl) return;
+ const v=(D&&D.state&&D.state.variants)||(D&&D.variants)||null;
+ const bk=(v&&v.books)||[];
+ if(!bk.length){box.innerHTML='<div class="m">Variant books abhi data nahi (daemon 09:15 IST se).</div>';tl.innerHTML="";return}
+ if(!varSel||!bk.some(b=>b.name===varSel)) varSel=bk[0].name;
+ const wr=x=>x==null?"—":f(x,0)+"%";
+ box.innerHTML=bk.map(b=>{const d=b.day||{},t=b.total||{};return `<div class="varBox${b.name===varSel?" on":""}" data-vb="${esc(b.name)}"><h4>${esc(b.label||b.name)}</h4><div class="kv"><span>TODAY <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)}</b></span><span>R <b class="${cl(d.r)}">${sg(d.r)}R</b></span><span>ALL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)}</b></span><span>ALL R <b class="${cl(t.r)}">${sg(t.r)}R</b></span><span>TRADES <b>${d.trades||0}</b> / ${t.trades||0}</span><span>WIN <b class="a">${t.trades?wr(t.winRate):"—"}</b></span></div>${d.stopped?'<div class="p">−2R stop hit (aaj band)</div>':''}</div>`}).join("");
+ box.querySelectorAll(".varBox").forEach(el=>{el.onclick=()=>{varSel=el.getAttribute("data-vb");renderVariants()}});
+ const b=bk.find(z=>z.name===varSel)||bk[0];
+ const nm=c=>c?String(c).replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):"";
+ const lab=s=>s==="LONG"?'<span class="g">▲ LONG</span>':'<span class="p">▼ SHORT</span>';
+ let h=`<div class="aaSub">${esc(b.label||b.name)} · ${esc(b.desc||"")}</div>`;
+ const op=b.open||[];
+ h+=`<table><tr><th>OPEN</th><th>SIDE</th><th>LOTS</th><th>FILL</th><th>SL</th><th>T1</th><th>T2</th><th>TIME</th></tr>`+(op.map(o=>`<tr><td>${esc(nm(o.contract)||o.symbol)}</td><td>${lab(o.side)}</td><td>${o.qtyOpenLots??o.lots??2}${o.c2c?' <span class="a">C2C</span>':''}</td><td>${f(o.fill)}</td><td class="p">${f(o.sl)}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td>${esc(String(o.time||"").slice(0,8))}</td></tr>`).join("")||`<tr><td colspan="8" class="m">no open position</td></tr>`)+`</table>`;
+ const rc=(b.recent&&b.recent.length?b.recent:(b.today||[]));
+ h+=`<table style="margin-top:4px"><tr><th>TRADES</th><th>SIDE</th><th>DATE</th><th>TIME</th><th>FILL</th><th>EXIT</th><th>WHY</th><th>P&amp;L</th></tr>`+(rc.map(x=>`<tr><td>${esc(nm(x.contract)||x.symbol)}</td><td>${lab(x.side)}</td><td>${esc(String(x.date||"").slice(5))}</td><td>${esc(x.time||"")}</td><td>${f(x.fill)}</td><td>${f(x.exit)}</td><td class="dm">${esc(x.reason||"")}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`).join("")||`<tr><td colspan="8" class="m">abhi koi closed trade nahi</td></tr>`)+`</table>`;
+ const dc=b.decisions||[];
+ if(dc.length)h+=`<table style="margin-top:4px"><tr><th>DECISIONS (latest)</th><th>SIDE</th><th>STATE</th><th>WHY</th></tr>`+dc.slice().reverse().slice(0,15).map(z=>`<tr><td>${esc(z.time||"")} ${esc(z.symbol||"")}</td><td>${lab(z.side)}</td><td>${esc(z.state||"")}</td><td class="dm" style="white-space:normal">${esc(z.reason||"")}</td></tr>`).join("")+`</table>`;
+ tl.innerHTML=h;
+}
 function renderLog(){
  const qs=Object.values(L).filter(q=>q&&q.pct!=null&&q.symbol!=="NIFTY"&&q.symbol!=="INDIAVIX"&&!/\d(CE|PE)$/.test(q.symbol)).sort((a,b)=>b.pct-a.pct);
  const ch=q=>`<a class="tile" style="background:${heatBg(q.pct)};display:inline-block;margin:0 3px 3px 0" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b> ${sg(q.pct)}%</a>`;
@@ -843,7 +876,7 @@ async function refresh(){
  if(l.status==="fulfilled"){L=l.value.quotes||{};ltpAge=l.value.age_s;quoteAsOf=l.value.updated;lastOk=Date.now()}
  if(d.status==="fulfilled")D=d.value;
  if(c.status==="fulfilled"&&c.value)bars=(c.value.bars||[]).map(x=>{const dt=new Date(x.time*1000+TZS);return {t:dt.toISOString().slice(0,16).replace("T"," "),o:x.open,h:x.high,l:x.low,c:x.close}});
- for(const fn of [renderCounters,renderNews,renderNewsMovers,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderWatchLong,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
+ for(const fn of [renderCounters,renderNews,renderNewsMovers,renderIceberg,renderSetups,renderAudit,renderGraded,renderHeat,renderBtst,renderPaper,renderWatchLong,renderVariants,renderLog,()=>renderChart(bars)]){try{fn()}catch(e){console.error(e)}}
  try{renderWatchlist()}catch(e){console.error(e)} try{renderPortfolio()}catch(e){console.error(e)} if(typeof renderBtst==="function"){try{renderBtst()}catch(e){console.error(e)}} else {try{renderBtstLocal()}catch(e){}}
  renderLive();$("upd").textContent="poll "+ist()+" IST · quotes asof "+(quoteAsOf?quoteAsOf.slice(11,19)+" IST":"unavailable")+(D&&D.graded_last_run?" · graded "+D.graded_last_run.slice(11):"");
  }finally{inFlight=false}
