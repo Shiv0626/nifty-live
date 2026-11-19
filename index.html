@@ -40,6 +40,9 @@ html,body{overflow:hidden}
 .wls{font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
 .wlpx{color:var(--dim)}
 .wlp{font-weight:700;min-width:58px;text-align:right}
+#wlBackdrop{display:none}
+#wlClose{display:none;background:transparent;border:1px solid var(--border);color:var(--text);font:inherit;font-size:20px;line-height:1;cursor:pointer;padding:4px 10px;border-radius:4px;min-width:36px;min-height:36px}
+#wlClose:hover,#wlClose:focus{background:var(--panel);color:#fff;outline:none}
 .tvmain{display:grid;grid-template-rows:minmax(220px,1.15fr) 34px minmax(180px,1fr);min-height:0;min-width:0}
 #chartP{margin:0;border:0;border-radius:0;border-bottom:1px solid var(--border);background:#131722;padding:4px 8px 0;min-height:0;display:flex;flex-direction:column}
 #chart{width:100%;height:100%;display:block;flex:1;min-height:0}
@@ -174,6 +177,10 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
  .tvbody{display:block}
  .watchside{display:none;position:fixed;left:0;top:0;bottom:0;width:min(80vw,280px);z-index:30;box-shadow:4px 0 24px #0008}
  body.wl-open .watchside{display:flex}
+ #wlBackdrop{display:none;position:fixed;inset:0;background:#00000099;z-index:29}
+ body.wl-open #wlBackdrop{display:block}
+ .wsh{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:6px}
+ body.wl-open #wlClose{display:inline-block}
  .tvmain{display:block;min-height:0}
  #chartP{height:220px}
  #chart{height:180px}
@@ -196,6 +203,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
 .srcb{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:5px;border:1px solid currentColor;white-space:nowrap}
 .srcb.ok{color:var(--green,#00E5A0)}.srcb.bad{color:#fff;background:#b3122e;border-color:#ff2d55}.srcb.warn{color:var(--amber,#F5A623)}
 </style></head><body>
+<div id="wlBackdrop"></div>
 <div id="app">
  <div class="tvbar">
   <button type="button" class="iconbtn" id="wlToggle">☰</button>
@@ -217,7 +225,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
  <div id="auditStrip"></div>
  <div class="tvbody">
   <aside class="watchside">
-   <div class="wsh">WATCHLIST</div>
+   <div class="wsh"><span>WATCHLIST</span><button type="button" id="wlClose" aria-label="Close watchlist">×</button></div>
    <input id="symSearch" type="search" placeholder="Search symbol…" autocomplete="off"/>
    <div id="watchlist" class="scroll"></div>
   </aside>
@@ -915,6 +923,7 @@ function renderWatchlist(){
  box.innerHTML=rows.map(x=>`<button type="button" class="wlrow ${x.symbol===chartSym?"on":""}" data-sym="${esc(x.symbol)}"><span class="wls">${esc(x.symbol)}</span><span class="wlpx">${f(x.ltp, x.symbol==="INDIAVIX"?2:2)}</span><span class="wlp ${cl(x.pct)}">${sg(x.pct)}%</span></button>`).join("")||'<div class="m" style="padding:8px">No symbols</div>';
 }
 function forceChart(){ lastChartPoll=0; if(!inFlight){clearTimeout(nextPoll);pollLoop()} }
+function closeWatchlist(){ document.body.classList.remove("wl-open"); }
 function setChartSym(sym){
  if(!sym) return;
  chartSym=sym;
@@ -922,6 +931,7 @@ function setChartSym(sym){
  const lab=$("chartSymLabel"); if(lab) lab.textContent=sym;
  forceChart();
  renderWatchlist();
+ closeWatchlist();
 }
 function setChartTf(tf){
  chartTf=tf;
@@ -1076,6 +1086,9 @@ function bindUi(){
  if(wl) wl.addEventListener("click",e=>{const row=e.target.closest("[data-sym]"); if(row) setChartSym(row.getAttribute("data-sym"));});
  const s=$("symSearch"); if(s) s.addEventListener("input",()=>{wlFilter=s.value; renderWatchlist();});
  const tog=$("wlToggle"); if(tog) tog.onclick=()=>document.body.classList.toggle("wl-open");
+ const wlc=$("wlClose"); if(wlc) wlc.onclick=closeWatchlist;
+ const wlb=$("wlBackdrop"); if(wlb) wlb.addEventListener("click",closeWatchlist);
+ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeWatchlist(); });
  const br=$("brokerCards");
  if(br) br.addEventListener("click",e=>{const btn=e.target.closest(".connBtn"); if(btn) openBrokerModal(btn.getAttribute("data-broker"));});
  const close=$("brokerModalClose"), modal=$("brokerModal");
