@@ -789,6 +789,13 @@ function renderHeat(){
  $("breadth").innerHTML=`<span class="g">${up}↑</span> <span class="p">${qs.length-up}↓</span> <span class="dm">${esc(as)}</span>`;
  $("heat").innerHTML=groups.map(g=>`<div class="sec">${esc(g.n)} <span class="${cl(g.avg)}">${sg(g.avg)}%</span></div>`+g.a.map(q=>`<a class="tile" style="background:${heatBg(q.pct)}" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b><br>${f(q.ltp)} ${sg(q.pct)}%</a>`).join("")).join("")||'<div class="m">waiting for live quotes</div>';
 }
+function btstPnl(){
+ const bp=(D&&D.state&&D.state.btst_paper)||{},T=bp.total||{},rows=bp.rows||[];if(!T.trades&&!rows.length)return "";
+ const cls=v=>v>0?"g":(v<0?"p":"dm"),inr=v=>(v<0?"-₹":"₹")+Math.abs(Math.round(v||0)).toLocaleString("en-IN");
+ const op=rows.filter(r=>r.status==="OPEN").map(r=>`<div class="m" style="font-size:11px">OPEN · ${esc(r.symbol)} ${esc(r.contract||"")} @ ${esc(r.entry_premium)} × ${esc(r.qty)} · ${esc(String(r.entry_time||"").slice(11,16))} IST · exit ${esc(r.exit_date||"")}</div>`).join("");
+ return `<div class="card"><div class="h"><span><b>BTST book · paper</b> <span class="dm" style="font-size:11px">(alag book · sirf closed P&L)</span></span></div>
+ <div class="m">ALL <b class="${cls(T.net)}">${inr(T.net)}</b> net · ${(T.R>0?"+":"")+(T.R??0)}R · ${T.trades||0} trades · ${T.wins||0}W (${T.winRate??0}%) · charges ${inr(T.charges)}</div>${op}</div>`;
+}
 function renderBtst(){
  const b=(D&&D.state&&D.state.btst)||{},p=b.picks||[];$("btstN").textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
  $("btst").innerHTML=p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
@@ -796,6 +803,7 @@ function renderBtst(){
  ${x.option?`<div class="lv" style="grid-template-columns:1fr"><span class="m">OPT <b class="a">${esc(x.option)}</b> ${esc(x.prem||"")}${x.lot?" · lot "+esc(x.lot):""}${x.risk_1lot?" · risk ₹"+esc(x.risk_1lot)+"/lot":""}</span></div>`:""}
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
  <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
+ $("btst").insertAdjacentHTML("afterbegin",btstPnl());
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
@@ -986,6 +994,7 @@ function renderBtstLocal(){
  <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
  <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join(""):'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
+ box.insertAdjacentHTML("afterbegin",btstPnl());
 }
 function iceHoldings(sig){
  const rows=((sig&&sig.rows)||[]).filter(r=>!r.backfill && /^(OPEN|T1_DONE|CLOSED)$/.test(String(r.status||"")));
