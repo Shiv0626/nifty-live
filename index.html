@@ -85,6 +85,7 @@ html,body{overflow:hidden}
 .varBox .kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 6px}.varBox .kv span{white-space:nowrap}
 @media (max-width:700px){.varBoxes{grid-template-columns:1fr}}
 #aaStats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
+#aaBacktestNote{color:var(--amber,#F5A623);font-size:9px;margin:0 0 3px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
 #aaP .aaSub{color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
 #aaSetupRow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:start;min-width:0}
 #aaP #gradedP{max-height:none;margin-top:4px;border:1px solid var(--hair);box-shadow:none;padding:5px 6px}
@@ -251,6 +252,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
    <div class="tabpanes">
     <div class="tabpane on panel" data-tab="aa" id="aaP">
      <div class="aaH"><span>A/A+ SETUP SYSTEM · paper</span><span><span class="info">PAPER ONLY · not iceberg</span> <span id="setupsN"></span> <span id="paperU"></span></span></div>
+     <script type="application/json" id="backtestNoteSrc">{"text":"1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)","kind":"backtest_note","not_booked":true,"exclude_from_pnl_audit":true}</script>
+     <div class="stats" id="aaBacktestNote">1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)</div>
      <div class="stats" id="aaStats"></div>
      <div class="aaBody">
       <div class="aaSetupRow" id="aaSetupRow">
@@ -805,8 +808,15 @@ function renderBtst(){
  <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
  $("btst").insertAdjacentHTML("afterbegin",btstPnl());
 }
+function backtestNoteText(){
+ const n=(D&&D.backtest_note)||(D&&D.state&&D.state.backtest_note)||{};
+ if(n&&n.text) return String(n.text);
+ try{const e=$("backtestNoteSrc"); if(e){const j=JSON.parse(e.textContent); if(j&&j.text) return String(j.text)}}catch(err){}
+ return "1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)";
+}
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
+ const bn=$("aaBacktestNote"); if(bn) bn.textContent=backtestNoteText();
  const pu=$("paperU"); if(pu) pu.innerHTML=`open <span class="${cl(u.pnl)}">₹${sg(u.pnl,0)}</span>`;
  const st=$("aaStats");
  if(st) st.innerHTML=`today <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b> · trades ${d.trades||0} · win ${f(t.winRate,0)}% (${t.trades||0}) · all <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b>`;
