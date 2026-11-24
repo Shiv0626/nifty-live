@@ -86,6 +86,8 @@ html,body{overflow:hidden}
 @media (max-width:700px){.varBoxes{grid-template-columns:1fr}}
 #aaStats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
 #aaBacktestNote{color:var(--amber,#F5A623);font-size:9px;margin:0 0 3px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
+#expOiVolStatus{color:var(--muted);font-size:9px;margin:6px 0 2px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono);line-height:1.45}
+#expOiVolNote{color:var(--amber,#F5A623);font-size:9px;margin:0 0 6px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
 #aaP .aaSub{color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
 #aaSetupRow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:start;min-width:0}
 #aaP #gradedP{max-height:none;margin-top:4px;border:1px solid var(--hair);box-shadow:none;padding:5px 6px}
@@ -280,7 +282,10 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
      <div class="scroll" id="varTrades"></div>
     </div>
     <div class="tabpane panel" data-tab="expiry" id="expiryP">
-     <div class="lbl"><span>EXPIRY DEMO BOOKS · PAPER ONLY · EXPIRY_BASE / EXPIRY_IMP / EXPIRY_SCALP1M</span><span class="info">A/A+ me count nahi · real orders kabhi nahi</span></div>
+     <div class="lbl"><span>EXPIRY DEMO BOOKS · PAPER ONLY · EXPIRY_BASE / EXPIRY_BASE_OIVOL (SHADOW) / EXPIRY_IMP / EXPIRY_SCALP1M</span><span class="info">A/A+ me count nahi · real orders kabhi nahi · shadow booked P&amp;L me nahi</span></div>
+     <script type="application/json" id="expiryOiVolNoteSrc">{"status_base": "BASE: original 19 Nov rules (OI/volume only logged, not gating)", "status_shadow": "Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L", "text": "23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)", "label": "backtest, not booked", "kind": "backtest_note", "not_booked": true, "exclude_from_pnl_audit": true}</script>
+     <div class="stats" id="expOiVolStatus">BASE: original 19 Nov rules (OI/volume only logged, not gating)<br>Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L</div>
+     <div class="stats" id="expOiVolNote">23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)</div>
      <div class="scroll" id="expiryBox"></div>
     </div>
     <div class="tabpane panel" data-tab="iceberg" id="icebergP">
@@ -812,6 +817,21 @@ function backtestNoteText(){
  try{const e=$("backtestNoteSrc"); if(e){const j=JSON.parse(e.textContent); if(j&&j.text) return String(j.text)}}catch(err){}
  return "1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)";
 }
+function expiryOiVolNote(){
+ const n=(D&&D.expiry_oivol_note)||(D&&D.state&&D.state.expiry_oivol_note)||{};
+ if(n&&(n.text||n.status_base)) return n;
+ try{const e=$("expiryOiVolNoteSrc"); if(e){const j=JSON.parse(e.textContent); if(j) return j}}catch(err){}
+ return {status_base:"BASE: original 19 Nov rules (OI/volume only logged, not gating)",
+  status_shadow:"Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L",
+  text:"23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)",
+  label:"backtest, not booked"};
+}
+function renderExpiryOiVolNote(){
+ const j=expiryOiVolNote();
+ const st=$("expOiVolStatus"), nt=$("expOiVolNote");
+ if(st) st.innerHTML=esc(j.status_base||"")+"<br>"+esc(j.status_shadow||"");
+ if(nt) nt.textContent=j.text||"";
+}
 function renderBtst(){
  const b=(D&&D.state&&D.state.btst)||{},p=b.picks||[];$("btstN").textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
  $("btst").innerHTML=p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
@@ -869,6 +889,7 @@ function renderVariants(){
  tl.innerHTML=h;
 }
 function renderExpiry(){
+ try{renderExpiryOiVolNote()}catch(e){console.error(e)}
  const el=$("expiryBox"); if(!el) return;
  const X=(D&&D.state&&D.state.expiry)||null;
  if(!X){el.innerHTML='<div class="m">Expiry engine data abhi nahi aaya.</div>';return}
