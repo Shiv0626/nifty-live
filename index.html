@@ -34,7 +34,7 @@ html,body{overflow:hidden}
 .wsh{font-size:10px;letter-spacing:.14em;color:var(--muted);padding:8px 8px 4px;font-weight:700}
 #symSearch{margin:0 8px 6px;background:#1e222d;border:1px solid var(--border);border-radius:4px;color:var(--text);padding:5px 8px;font:inherit;font-size:12px;width:calc(100% - 16px)}
 #watchlist{overflow:auto;flex:1;min-height:0;padding:0 0 8px}
-.wlrow{display:grid;grid-template-columns:1fr auto auto;gap:6px;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #1a1e27;color:inherit;padding:5px 8px;cursor:pointer;font-family:var(--mono);font-size:11px}
+.wlrow{display:grid;grid-template-columns:1fr auto auto;gap:6px;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid #1a1e27;color:inherit;text-decoration:none;padding:5px 8px;cursor:pointer;font-family:var(--mono);font-size:11px}
 .wlrow:hover,.wlrow.on{background:#1e222d}
 .wlrow.on{box-shadow:inset 2px 0 0 var(--accent)}
 .wls{font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
@@ -86,8 +86,14 @@ html,body{overflow:hidden}
 @media (max-width:700px){.varBoxes{grid-template-columns:1fr}}
 #aaStats{color:var(--muted);font-size:9px;margin:0 0 5px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
 #aaBacktestNote{color:var(--amber,#F5A623);font-size:9px;margin:0 0 3px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
-#expOiVolStatus{color:var(--muted);font-size:9px;margin:6px 0 2px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono);line-height:1.45}
-#expOiVolNote{color:var(--amber,#F5A623);font-size:9px;margin:0 0 6px;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono)}
+#expiryP{overflow:auto}
+#expiryP>.lbl{flex-wrap:wrap;white-space:normal;letter-spacing:.08em;line-height:1.4}
+#expOiVolStatus,#expOiVolNote,#expOiVolBanner{flex:0 0 auto;overflow-wrap:anywhere;white-space:normal;font-family:var(--mono);line-height:1.45}
+#expOiVolStatus{color:var(--muted);font-size:11px;margin:6px 0 2px}
+#expOiVolNote{color:var(--amber,#F5A623);font-size:11px;margin:0 0 6px}
+#expOiVolBanner,#expOiVolCard{border:1px dashed #F5A623;background:#1a1408}
+#expOiVolBanner h4,#expOiVolCard h4{white-space:normal;overflow:visible;text-overflow:unset;color:#F5A623}
+#expOiVolBanner .btxt,#expOiVolCard .btxt{color:var(--amber,#F5A623);white-space:normal;margin-top:4px;font-size:11px}
 #aaP .aaSub{color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:6px 0 3px}
 #aaSetupRow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:start;min-width:0}
 #aaP #gradedP{max-height:none;margin-top:4px;border:1px solid var(--hair);box-shadow:none;padding:5px 6px}
@@ -284,8 +290,11 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
     <div class="tabpane panel" data-tab="expiry" id="expiryP">
      <div class="lbl"><span>EXPIRY DEMO BOOKS · PAPER ONLY · EXPIRY_BASE / EXPIRY_BASE_OIVOL (SHADOW) / EXPIRY_IMP / EXPIRY_SCALP1M</span><span class="info">A/A+ me count nahi · real orders kabhi nahi · shadow booked P&amp;L me nahi</span></div>
      <script type="application/json" id="expiryOiVolNoteSrc">{"status_base": "BASE: original 19 Nov rules (OI/volume only logged, not gating)", "status_shadow": "Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L", "text": "23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)", "label": "backtest, not booked", "kind": "backtest_note", "not_booked": true, "exclude_from_pnl_audit": true}</script>
-     <div class="stats" id="expOiVolStatus">BASE: original 19 Nov rules (OI/volume only logged, not gating)<br>Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L</div>
-     <div class="stats" id="expOiVolNote">23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)</div>
+     <div class="varBox on" id="expOiVolTop" style="margin:4px 0 8px;border-style:dashed;border-color:#F5A623;background:#1a1408;cursor:default">
+      <h4 style="white-space:normal;overflow:visible;text-overflow:unset;color:#F5A623">BASE vs SHADOW · OI/volume · paper, not in booked P&amp;L</h4>
+      <div class="stats" id="expOiVolStatus">BASE: original 19 Nov rules (OI/volume only logged, not gating)<br>Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L</div>
+      <div class="stats" id="expOiVolNote">23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)</div>
+     </div>
      <div class="scroll" id="expiryBox"></div>
     </div>
     <div class="tabpane panel" data-tab="iceberg" id="icebergP">
@@ -888,6 +897,19 @@ function renderVariants(){
  if(dc.length)h+=`<table style="margin-top:4px"><tr><th>DECISIONS (latest)</th><th>SIDE</th><th>STATE</th><th>WHY</th></tr>`+dc.slice().reverse().slice(0,15).map(z=>`<tr><td>${esc(z.time||"")} ${esc(z.symbol||"")}</td><td>${lab(z.side)}</td><td>${esc(z.state||"")}</td><td class="dm" style="white-space:normal">${esc(z.reason||"")}</td></tr>`).join("")+`</table>`;
  tl.innerHTML=h;
 }
+function ensureExpiryOiVolBook(books, jn){
+ const list=[...(books||[])];
+ const nameOf=b=>String((b&& (b.name||b.book))||"");
+ if(list.some(b=>nameOf(b)==="EXPIRY_BASE_OIVOL")) return list;
+ const z={pnl:0,pnl_gross:0,costs:0,r:0,charges:0,slippage:0,trades:0,winRate:null};
+ const syn={name:"EXPIRY_BASE_OIVOL",book:"EXPIRY_BASE_OIVOL",
+  label:"EXPIRY_BASE_OIVOL · SHADOW · BASE + 19 Nov 14:27 OI/volume gate · paper, not in booked P&L",
+  shadow:true,day:Object.assign({},z),total:Object.assign({},z),open:[],today:[],recent:[],decisions:[],
+  backtest:{label:(jn&&jn.label)||"backtest, not booked",text:(jn&&jn.text)||"",missed_counted_net:jn&&jn.missed_counted_net,not_booked:true}};
+ const i=list.findIndex(b=>nameOf(b)==="EXPIRY_BASE");
+ if(i>=0) list.splice(i+1,0,syn); else list.unshift(syn);
+ return list;
+}
 function renderExpiry(){
  try{renderExpiryOiVolNote()}catch(e){console.error(e)}
  const el=$("expiryBox"); if(!el) return;
@@ -906,9 +928,14 @@ function renderExpiry(){
  h+=`<table><tr><th>INDEX</th><th>EXPIRY</th><th>LTP</th><th>PDH</th><th>PDL</th><th>PDC</th><th>STATUS</th><th>CONTEXT (extra)</th></tr>`+Object.values(lv).map(v=>{const ev=(X.events||{})[v.index]||{};const sp=ev.spot;const pos=sp==null?"":(sp>v.pdh?'<span class="g">above PDH</span>':sp<v.pdl?'<span class="p">below PDL</span>':(sp>v.pdc?"PDC–PDH":"PDL–PDC"));return `<tr><td><b>${esc(v.index)}</b></td><td>${esc(v.expiry)}</td><td><b>${sp!=null?f(sp):"—"}</b> ${pos}</td><td>${f(v.pdh)}</td><td>${f(v.pdl)}</td><td>${f(v.pdc)}</td><td>${esc(v.status)} (${esc(v.session)})</td><td class="dm" style="white-space:normal">wk H ${f((v.extra||{}).week_high)} / L ${f((v.extra||{}).week_low)} · Dow ${esc((v.extra||{}).dow_trend_daily||"")} · ${esc((v.extra||{}).crt_context||"")}</td></tr>`}).join("")+`</table>`;
  const oi=X.oi||{};
  Object.entries(oi).forEach(([k,s])=>{if(!s)return;h+=`<div class="aaSub" style="margin-top:6px">OI · ${esc(k)} ATM ${esc(s.atm)} · PCR(ATM±2) <b>${s.pcr!=null?s.pcr:"—"}</b> · CE OI ${f(s.ce_oi,0)} · PE OI ${f(s.pe_oi,0)} · ${esc(String(s.t||"").slice(11,19))}</div><table><tr>`+Object.entries(s.legs||{}).map(([kk,v])=>`<td class="dm">${esc(kk)}<br><b>${f(v.ltp)}</b><br>OI ${f(v.oi,0)}</td>`).join("")+`</tr></table>`});
- for(const b of (X.books||[])){
+ const jn=expiryOiVolNote();
+ h+=`<div class="varBox on" id="expOiVolBanner" style="margin-top:8px"><h4>BASE vs SHADOW · OI/volume</h4><div class="dm" style="white-space:normal">${esc(jn.status_base||"")}</div><div class="dm" style="white-space:normal">${esc(jn.status_shadow||"")}</div><div class="btxt"><b>${esc(jn.label||"backtest, not booked")}</b> — ${esc(jn.text||"")}</div></div>`;
+ const books=ensureExpiryOiVolBook(X.books||[], jn);
+ for(const b of books){
   const d=b.day||{},t=b.total||{};
-  h+=`<div class="varBox on" style="margin-top:8px"><h4>${esc(b.label||b.name)}</h4><div class="kv"><span>TODAY net <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)}</b></span><span>gross <b class="${cl(d.pnl_gross)}">₹${sg(d.pnl_gross,0)}</b></span><span>${d.charges!=null?`charges ₹${f(d.charges||0,0)} · slippage ₹${f(d.slippage||0,0)}`:`costs ₹${f(d.costs||0,0)}`}</span><span>R <b>${sg(d.r)}R</b></span><span>TRADES <b>${d.trades||0}</b></span><span>WIN <b>${d.winRate!=null?f(d.winRate,0)+"%":"—"}</b></span><span>ALL net ₹${sg(t.pnl,0)}</span></div></div>`;
+  const isSh=!!(b.shadow||b.name==="EXPIRY_BASE_OIVOL"||b.book==="EXPIRY_BASE_OIVOL");
+  const bt=b.backtest||(isSh?{label:jn.label||"backtest, not booked",text:jn.text,missed_counted_net:jn.missed_counted_net}:null);
+  h+=`<div class="varBox on${isSh?" expOiVolCard":""}" style="margin-top:8px"><h4 style="${isSh?"white-space:normal;overflow:visible;text-overflow:unset":""}">${esc(b.label||b.name)}</h4><div class="kv"><span>TODAY net <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)}</b></span><span>gross <b class="${cl(d.pnl_gross)}">₹${sg(d.pnl_gross,0)}</b></span><span>${d.charges!=null?`charges ₹${f(d.charges||0,0)} · slippage ₹${f(d.slippage||0,0)}`:`costs ₹${f(d.costs||0,0)}`}</span><span>R <b>${sg(d.r)}R</b></span><span>TRADES <b>${d.trades||0}</b></span><span>WIN <b>${d.winRate!=null?f(d.winRate,0)+"%":"—"}</b></span><span>ALL net ₹${sg(t.pnl,0)}</span></div>${bt&&(bt.text||bt.label)?`<div class="btxt"><b>${esc(bt.label||"backtest, not booked")}</b> — ${esc(bt.text||"")}${bt.missed_counted_net!=null?" · counted net ₹"+sg(bt.missed_counted_net,0):""} · paper, not in booked P&amp;L</div>`:""}</div>`;
   const op=b.open||[];
   h+=`<table><tr><th>OPEN</th><th>QTY</th><th>FILL</th><th>LTP</th>${LIVEPNL?"<th>LIVE P&amp;L</th>":""}<th>SL</th><th>TP</th><th>TRAIL</th><th>PEAK</th><th>GREEKS</th><th>OI/VOL</th><th>TIME</th></tr>`+(op.map(o=>{const g=o.greeks||{},c=o.confirm||{};const lp=(o.ltp!=null)?((o.ltp-o.fill)*(o.qty_open||0)+(o.realized||0)):null;const tr=o.lot1_done?'<span class="g">lot1 booked · lot2 trailing</span>':(o.c2c?'<span class="a">C2C</span>':'—');return `<tr><td><b>${esc(nm(o.contract))}</b><div class="dm">${esc(o.level||"")} ${esc(o.pattern||"")} ${esc(o.tf||"")} trig ${esc(o.trigger_time||"")}</div></td><td>${o.qty_open}/${o.qty}</td><td>${f(o.fill)}</td><td><b>${o.ltp!=null?f(o.ltp):"—"}</b> <span class="dm">${esc(o.ltp_t||"")}</span></td>${LIVEPNL?`<td class="${cl(lp)}">${lp!=null?"₹"+sg(lp,0):"—"}</td>`:""}<td class="p">${f(o.prem_sl)} <span class="dm">idx ${f(o.spot_sl)}</span></td><td class="g">${o.prem_tp!=null?f(o.prem_tp):f(o.spot_t1)}</td><td>${tr}</td><td>${o.peak!=null?f(o.peak):"—"}</td><td class="dm">Δ ${g.delta??"—"} Γ ${g.gamma??"—"} θ/hr ${g.theta_per_hr??g.theta??"—"} IV ${g.iv??"—"}</td><td class="dm">${esc(c.tag||"—")} vol ${c.vol_ratio??"—"}x PCR ${c.pcr_then??"—"}→${c.pcr_now??"—"}</td><td>${esc(String(o.time||"").slice(0,8))}</td></tr>`}).join("")||`<tr><td colspan="12" class="m">no open position</td></tr>`)+`</table>`;
   const rc=(b.recent||[]).slice().reverse();
@@ -977,7 +1004,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden){clearTime
 window.addEventListener("online",()=>{clearTimeout(nextPoll);if(!inFlight)pollLoop()});
 
 function researchSymbols(){
- const set=new Set(["NIFTY","INDIAVIX"]);
+ const set=new Set(["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","INDIAVIX"]);
  const st=(D&&D.state)||{};
  [...((D&&D.setups&&D.setups.setups)||[]),...(st.setups||[]),...(st.watch||[])].forEach(s=>{if(s&&s.symbol)set.add(s.symbol)});
  const ice=(D&&D.iceberg&&D.iceberg.signals)||{};
@@ -985,25 +1012,52 @@ function researchSymbols(){
  ((st.news_movers&&st.news_movers.rows)||[]).forEach(r=>{if(r&&r.symbol)set.add(r.symbol)});
  return set;
 }
+function watchUniverse(){
+ const set=new Set(["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","INDIAVIX"]);
+ try{
+  const b=(typeof NL!=="undefined"&&NL.bundle&&NL.bundle.symbols)||{};
+  (b.n50||[]).forEach(s=>{if(s)set.add(s)});
+  (b.indices||[]).forEach(s=>{if(s)set.add(s)});
+  (b.extra||[]).forEach(s=>{if(s&&!/\d(CE|PE)$/.test(s))set.add(s)});
+ }catch(e){}
+ researchSymbols().forEach(s=>{if(s)set.add(s)});
+ Object.keys(L||{}).forEach(s=>{if(s&&!/\d(CE|PE)$/.test(s))set.add(s)});
+ return set;
+}
+function chartHref(sym){ return "?go=chart&symbol="+encodeURIComponent(sym); }
+function quotesAreLastSession(){
+ if(ltpAge!=null&&ltpAge>6*3600) return true;
+ const as=String(quoteAsOf||"");
+ if(!as) return false;
+ const day=as.slice(0,10);
+ const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+ return day && day!==today;
+}
+function lastSessionLabel(){
+ const as=String(quoteAsOf||"");
+ const m=as.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+ const mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+ if(!m) return "Last session close";
+ return "Last session close · "+Number(m[3])+" "+mon[Number(m[2])-1]+" "+m[4]+":"+m[5]+" IST";
+}
 function renderWatchlist(){
  const box=$("watchlist"); if(!box) return;
- const n50=new Set(Object.keys((D&&D.state&&D.state.sectors)||{}));
- const research=researchSymbols();
- const qs=Object.values(L).filter(q=>q&&q.symbol&&q.ltp!=null&&!/\d(CE|PE)$/.test(q.symbol));
+ const pinned=["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","INDIAVIX"];
  const q=wlFilter.trim().toLowerCase();
- const rows=qs.filter(x=>{
-  if(q) return String(x.symbol).toLowerCase().includes(q);
-  return n50.has(x.symbol)||research.has(x.symbol)||x.symbol==="NIFTY"||x.symbol==="INDIAVIX";
+ const rows=[];
+ watchUniverse().forEach(sym=>{
+  if(!sym||/\d(CE|PE)$/.test(sym)) return;
+  if(q && !String(sym).toLowerCase().includes(q)) return;
+  const x=L[sym]||{};
+  rows.push({symbol:sym,ltp:x.ltp,pct:x.pct});
  });
- const pinned=["NIFTY","INDIAVIX"];
  rows.sort((a,b)=>{
   const pa=pinned.indexOf(a.symbol), pb=pinned.indexOf(b.symbol);
-  if(pa>=0||pb>=0) return (pa<0?99:pa)-(pb<0?99:pb);
-  const ra=research.has(a.symbol), rb=research.has(b.symbol);
-  if(ra!==rb) return ra?-1:1;
-  return Math.abs(b.pct||0)-Math.abs(a.pct||0);
+  if(pa>=0||pb>=0) return (pa<0?100:pa)-(pb<0?100:pb);
+  return String(a.symbol).localeCompare(String(b.symbol));
  });
- box.innerHTML=rows.map(x=>`<button type="button" class="wlrow ${x.symbol===chartSym?"on":""}" data-sym="${esc(x.symbol)}"><span class="wls">${esc(x.symbol)}</span><span class="wlpx">${f(x.ltp, x.symbol==="INDIAVIX"?2:2)}</span><span class="wlp ${cl(x.pct)}">${sg(x.pct)}%</span></button>`).join("")||'<div class="m" style="padding:8px">No symbols</div>';
+ const note=quotesAreLastSession()?`<div class="m" style="padding:6px 8px">${esc(lastSessionLabel())}</div>`:"";
+ box.innerHTML=note+rows.map(x=>`<a class="wlrow ${x.symbol===chartSym?"on":""}" href="${chartHref(x.symbol)}" data-sym="${esc(x.symbol)}"><span class="wls">${esc(x.symbol)}</span><span class="wlpx">${x.ltp==null?"—":f(x.ltp, x.symbol==="INDIAVIX"?2:2)}</span><span class="wlp ${cl(x.pct)}">${x.pct==null||x.pct===undefined?"—":sg(x.pct)+"%"}</span></a>`).join("")||'<div class="m" style="padding:8px">No symbols</div>';
 }
 function forceChart(){ lastChartPoll=0; if(!inFlight){clearTimeout(nextPoll);pollLoop()} }
 function closeWatchlist(){ document.body.classList.remove("wl-open"); }
@@ -1211,7 +1265,12 @@ function bindUi(){
  showTab(want);
  const lab=$("chartSymLabel"); if(lab) lab.textContent=chartSym;
  const wl=$("watchlist");
- if(wl) wl.addEventListener("click",e=>{const row=e.target.closest("[data-sym]"); if(row) setChartSym(row.getAttribute("data-sym"));});
+ if(wl) wl.addEventListener("click",e=>{
+  const row=e.target.closest("[data-sym]"); if(!row) return;
+  if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+  e.preventDefault();
+  setChartSym(row.getAttribute("data-sym"));
+ });
  const s=$("symSearch"); if(s) s.addEventListener("input",()=>{wlFilter=s.value; renderWatchlist();});
  const tog=$("wlToggle"); if(tog) tog.onclick=()=>document.body.classList.toggle("wl-open");
  const wlc=$("wlClose"); if(wlc) wlc.onclick=closeWatchlist;
