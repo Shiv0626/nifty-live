@@ -4,8 +4,9 @@
    Pages never blank: all reads fall back to the last GitHub bundle in memory. */
 (function(){
 "use strict";
-const REPO="Shiv0626/nifty-live",RAW="https://raw.githubusercontent.com/"+REPO+"/",BR="live",API="https://api.github.com/repos/"+REPO;
-const q=new URLSearchParams(location.search),K=q.get("k")||"";
+const q=new URLSearchParams(location.search);
+const REPO="Shiv0626/nifty-live",RAW="https://raw.githubusercontent.com/"+REPO+"/",BR=(q.get("br")==="live_test"?"live_test":"live"),API="https://api.github.com/repos/"+REPO;
+const K=q.get("k")||(function(){try{return localStorage.getItem("nl_k")||""}catch(e){return ""}})();
 const NOTUN=q.get("noTunnel")==="1"||q.get("forceFallback")==="1";
 const LAG=10;               // seconds after a bucket starts before we ask for it (push takes ~2-4s)
 let Bs=30,SLOWs=300;        // updated from bundle
@@ -15,6 +16,21 @@ const listeners=[];
 function emit(){listeners.forEach(f=>{try{f()}catch(e){}})}
 function to(u,ms,o){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({signal:c.signal},o||{})).finally(()=>clearTimeout(t))}
 async function getJ(u,ms,o){const r=await to(u,ms,o);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}
+
+// ---------- decrypt (bundles on the public 'live' branch are AES-GCM encrypted with a key derived from ?k=) ----------
+const SALT="nifty-live-v1";let _ck=null;
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function dkey(){
+  if(_ck)return _ck;
+  if(!K)throw new Error("KEY_MISSING");
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(K),"PBKDF2",false,["deriveKey"]);
+  return _ck=await crypto.subtle.deriveKey({name:"PBKDF2",salt:new TextEncoder().encode(SALT),iterations:200000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+}
+async function dec(j){
+  if(!j||j.enc!=="aesgcm")return j;                // old plain bundle: pass through
+  try{const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(j.iv)},await dkey(),b64(j.ct));return JSON.parse(new TextDecoder().decode(pt))}
+  catch(e){lastErr=String(e.message)==="KEY_MISSING"?"key (?k=) nahi mili":"key galat hai ya data kharab";return null}
+}
 function accept(b){
   if(!b||!b.pushed_ms)return false;
   if(bundle&&b.pushed_ms<=bundle.pushed_ms)return false;
@@ -24,7 +40,7 @@ function accept(b){
   emit();return true;
 }
 async function tryPaths(paths){
-  const rs=await Promise.all(paths.filter(p=>!missing.has(p)).map(p=>getJ(RAW+BR+"/"+p,7000).catch(e=>{if(String(e.message).includes("404"))missing.add(p);return null})));
+  const rs=await Promise.all(paths.filter(p=>!missing.has(p)).map(p=>getJ(RAW+BR+"/"+p,7000).then(dec).catch(e=>{if(String(e.message).includes("404"))missing.add(p);return null})));
   const ok=rs.filter(Boolean).sort((a,b)=>b.pushed_ms-a.pushed_ms);return ok[0]||null;
 }
 async function loadBundle(){
@@ -43,12 +59,12 @@ async function loadBundle(){
     const back=[];for(let i=2;i<24;i++)back.push("s/"+(s-i)+".json");
     b=await tryPaths(back);if(b&&accept(b))return;
     if(!bundle){
-      b=await getJ(RAW+BR+"/latest.json",8000).catch(()=>null);if(b&&accept(b))return;
+      b=await getJ(RAW+BR+"/latest.json",8000).then(dec).catch(()=>null);if(b&&accept(b))return;
     }
     // last resort, at most every 3 min: GitHub API pointer (60/h per IP) -> immutable sha URL
     if(Date.now()-lastApiPtr>180000){lastApiPtr=Date.now();
-      try{const r=await getJ(API+"/git/ref/heads/"+BR,6000);b=await getJ(RAW+r.object.sha+"/latest.json",8000);if(accept(b))return}catch(e){}}
-    lastErr="GitHub data abhi nahi mili";
+      try{const r=await getJ(API+"/git/ref/heads/"+BR,6000);b=await getJ(RAW+r.object.sha+"/latest.json",8000).then(dec);if(accept(b))return}catch(e){}}
+    if(!lastErr)lastErr="GitHub data abhi nahi mili";
   })().catch(e=>{lastErr=String(e.message||e)}).finally(()=>{inflight=null});
   return inflight;
 }
@@ -158,7 +174,7 @@ function badgeHTML(){
   return {cls:s.stale?"bad":"ok",html:"● GitHub · updated "+istHMS(s.pushed)+" IST · "+fmtAge(s.ageS)+" pehle"+(s.noTunnel?" · TEST: noTunnel":"")};
 }
 // schedule: bundle check every 5s (fetches only when a new 30s bucket is due); tunnel probe every 15s
-function tick(){loadBundle();if(!NOTUN&&(!tunnelLive()||Date.now()-lastProbe>15000)&&Date.now()-lastProbe>(tunnelLive()?15000:20000))probe()}
+function tick(){if(document.hidden)return;loadBundle();if(!NOTUN&&(!tunnelLive()||Date.now()-lastProbe>15000)&&Date.now()-lastProbe>(tunnelLive()?15000:20000))probe()}
 loadBundle();probe();setInterval(tick,5000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){tick()}});
 window.NL={api,status,badgeHTML,onChange:f=>listeners.push(f),loadBundle,probe,get bundle(){return bundle},_synth:synth};
