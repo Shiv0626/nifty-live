@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#131722"/>
+<script>(function(){try{var u=new URL(location.href),k=u.searchParams.get('k');if(k){localStorage.setItem('nl_k',k)}else if(u.searchParams.get('nokey')!=='1'){var s=localStorage.getItem('nl_k');if(s&&/^[0-9a-f]{16,64}$/.test(s)){u.searchParams.set('k',s);history.replaceState(null,'',u.toString())}}}catch(e){}})()</script>
+<script>/* 18 Nov post-market: ?go=chart probes ALL hosts (host.json host+hosts + last good) in parallel and opens the first that answers with the key; none -> GitHub chart.html */(function(){var q=new URLSearchParams(location.search);if(q.get('go')!=='chart')return;q.delete('go');var fb=function(){location.replace('chart.html?'+q.toString())};var k=q.get('k');if(!k){fb();return}var done=false,t=setTimeout(function(){if(!done){done=true;fb()}},6000);function go(h){if(done)return;done=true;clearTimeout(t);try{localStorage.setItem('nl_host',h)}catch(e){}location.replace(h+(q.get('tab')==='option'?'/?':'/pro?')+q.toString())}function ok(h){var c=new AbortController();setTimeout(function(){c.abort()},4000);return fetch(h+'/api/audit?k='+encodeURIComponent(k),{cache:'no-store',signal:c.signal}).then(function(r){return r.ok}).catch(function(){return false})}var l=[];function add(h){if(typeof h==='string'&&/^https:[/][/][a-z0-9.-]+$/.test(h)&&l.indexOf(h)<0)l.push(h)}try{add(localStorage.getItem('nl_host'))}catch(e){}fetch('host.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {}}).then(function(j){j=j||{};add(j.host);(j.hosts||[]).forEach(add);if(!l.length){if(!done){done=true;clearTimeout(t);fb()}return}var n=l.length;l.forEach(function(h){ok(h).then(function(g){if(g)go(h);else if(--n===0&&!done){done=true;clearTimeout(t);fb()}})})})})()</script>
+<title>Nifty 50 Setup Dashboard · Live</title>
+<link rel="stylesheet" href="app.css?v=2">
+</head><body>
+<div id="wlBackdrop"></div>
+<div id="app">
+ <div class="tvbar">
+  <button type="button" class="iconbtn" id="wlToggle">☰</button>
+  <span class="ttl">SETUP_WATCH</span>
+  <span class="live m" id="live">● —</span><span class="srcb warn" id="srcBadge">● GitHub data load ho raha hai…</span>
+  <span class="symchip" id="chartSymLabel">NIFTY</span>
+  <div class="tfs" id="tfs">
+   <button type="button" class="tfbtn" data-tf="1m">1m</button>
+   <button type="button" class="tfbtn" data-tf="3m">3m</button>
+   <button type="button" class="tfbtn on" data-tf="5m">5m</button>
+   <button type="button" class="tfbtn" data-tf="15m">15m</button>
+   <button type="button" class="tfbtn" data-tf="30m">30m</button>
+   <button type="button" class="tfbtn" data-tf="1H">1H</button>
+   <button type="button" class="tfbtn" data-tf="D">D</button>
+  </div>
+  <div class="ctrs" id="ctrs"></div>
+  <span class="clock" id="istClock">— IST</span>
+ </div>
+ <div id="auditStrip"></div>
+ <div class="tvbody">
+  <aside class="watchside">
+   <div class="wsh"><span>WATCHLIST</span><button type="button" id="wlClose" aria-label="Close watchlist">×</button></div>
+   <input id="symSearch" type="search" placeholder="Search symbol…" autocomplete="off"/>
+   <div id="watchlist" class="scroll"></div>
+  </aside>
+  <div class="tvmain">
+   <div class="panel" id="chartP">
+    <div class="lbl"><span id="chartTitle">NIFTY 50 · 5M</span><span><a class="b" id="chartLive" href="#" target="_blank">Live Chart</a> · <a class="b" id="niftyTv" target="_blank" rel="noreferrer">TradingView ↗</a></span></div>
+    <div id="chartOhlc"></div>
+    <svg id="chart"></svg>
+   </div>
+   <nav class="tabs" id="tabs">
+    <button type="button" class="tabbtn on" data-tab="aa">A/A+ Setups</button>
+    <button type="button" class="tabbtn" data-tab="variants">Variants</button>
+    <button type="button" class="tabbtn" data-tab="expiry">Expiry</button>
+    <button type="button" class="tabbtn" data-tab="iceberg">Iceberg</button>
+    <button type="button" class="tabbtn" data-tab="watch">WATCH</button>
+    <button type="button" class="tabbtn" data-tab="news">News</button>
+    <button type="button" class="tabbtn" data-tab="movers">F&amp;O Movers</button>
+    <button type="button" class="tabbtn" data-tab="btst">BTST/STBT</button>
+    <button type="button" class="tabbtn" data-tab="heat">Heatmap / Nifty</button>
+    <button type="button" class="tabbtn" data-tab="log">Log</button>
+    <button type="button" class="tabbtn" data-tab="portfolio">Portfolio</button>
+   </nav>
+   <div class="tabpanes">
+    <div class="tabpane on panel" data-tab="aa" id="aaP">
+     <div class="aaH"><span>A/A+ SETUP SYSTEM · paper</span><span><span class="info">PAPER ONLY · not iceberg</span> <span id="setupsN"></span> <span id="paperU"></span></span></div>
+     <script type="application/json" id="backtestNoteSrc">{"text":"1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)","kind":"backtest_note","not_booked":true,"exclude_from_pnl_audit":true}</script>
+     <div class="stats" id="aaBacktestNote">1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)</div>
+     <div class="stats" id="aaStats"></div>
+     <div class="aaBody">
+      <div class="aaSetupRow" id="aaSetupRow">
+       <div>
+        <div class="aaSub">SETUPS · A / A+</div>
+        <div class="scroll" id="setups"></div>
+       </div>
+       <div>
+        <div class="aaSub">DEMO TRADES · this book's P&amp;L</div>
+        <div class="scroll" id="paper"></div>
+        <div class="aaSub" style="margin-top:6px">WATCH-LONG DEMO · near-A BUY (CE) · <span class="info">NOT A/A+</span></div>
+        <div class="scroll" id="paperWL"></div>
+       </div>
+      </div>
+      <div class="panel" id="gradedP">
+       <div class="lbl"><span>GRADED · REJECTIONS</span><span id="gradN"></span></div>
+       <div class="scroll" id="graded"></div>
+      </div>
+     </div>
+    </div>
+    <div class="tabpane panel" data-tab="variants" id="variantsP">
+     <div class="lbl"><span>VARIANT SHADOW BOOKS · PAPER ONLY · CAP2 / F1F4 / CAP5 / F2+CAP5 / F1F4+CAP5 / MECH (net) vs A/A+</span><span class="info">shadows A/A+ me count nahi hote · apna −2R stop</span></div>
+     <div id="varBoxes" class="varBoxes"></div>
+     <div class="scroll" id="varTrades"></div>
+    </div>
+    <div class="tabpane panel" data-tab="expiry" id="expiryP">
+     <div class="lbl"><span>EXPIRY DEMO BOOKS · PAPER ONLY · EXPIRY_BASE / EXPIRY_BASE_OIVOL (SHADOW) / EXPIRY_IMP / EXPIRY_SCALP1M</span><span class="info">A/A+ me count nahi · real orders kabhi nahi · shadow booked P&amp;L me nahi</span></div>
+     <script type="application/json" id="expiryOiVolNoteSrc">{"status_base": "BASE: original 19 Nov rules (OI/volume only logged, not gating)", "status_shadow": "Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L", "text": "23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)", "label": "backtest, not booked", "kind": "backtest_note", "not_booked": true, "exclude_from_pnl_audit": true}</script>
+     <div class="varBox on" id="expOiVolTop" style="margin:4px 0 8px;border-style:dashed;border-color:#F5A623;background:#1a1408;cursor:default">
+      <h4 style="white-space:normal;overflow:visible;text-overflow:unset;color:#F5A623">BASE vs SHADOW · OI/volume · paper, not in booked P&amp;L</h4>
+      <div class="stats" id="expOiVolStatus">BASE: original 19 Nov rules (OI/volume only logged, not gating)<br>Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L</div>
+      <div class="stats" id="expOiVolNote">23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)</div>
+     </div>
+     <div class="scroll" id="expiryBox"></div>
+    </div>
+    <div class="tabpane panel" data-tab="iceberg" id="icebergP">
+     <div class="lbl"><span>ICEBERG DETECTIONS</span><span id="icebergN"></span></div>
+     <div class="scroll" id="iceberg"></div>
+    </div>
+    <div class="tabpane panel" data-tab="watch" id="watchP">
+     <div class="lbl"><span>WATCH</span><span id="watchN"></span></div>
+     <div class="scroll" id="watchCards"></div>
+    </div>
+    <div class="tabpane panel" data-tab="news" id="newsP">
+     <div class="lbl"><span>NEWS FLASH · हिंदी</span><span id="newsAsOf"></span></div>
+     <div class="scroll"><div id="news"></div></div>
+    </div>
+    <div class="tabpane panel" data-tab="movers" id="newsMoversP">
+     <div class="lbl"><span>NEWS MOVERS · not on WATCH</span><span id="newsMoversN"></span></div>
+     <div class="scroll" id="newsMoversWrap"><div id="newsMovers"></div></div>
+    </div>
+    <div class="tabpane panel" data-tab="btst" id="btstP">
+     <div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div>
+     <div class="panel" id="btstP" style="flex:0 0 auto;margin-top:6px"><div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div><div class="scroll" id="btst"></div></div>
+    </div>
+    <div class="tabpane panel" data-tab="heat" id="heatP">
+     <div class="lbl"><span><span id="heatT">NIFTY 50 HEAT</span> <span class="dm hs">· vs prev close</span> <button id="heatBtn" class="hbtn">SECTOR</button></span><span id="breadth"></span></div>
+     <div class="scroll"><div class="heat" id="heat"></div></div>
+    </div>
+    <div class="tabpane panel" data-tab="log" id="logP">
+     <div class="lbl"><span>MOVERS · LOG</span></div>
+     <div class="scroll" id="log"></div>
+    </div>
+    <div class="tabpane" data-tab="portfolio" id="portfolioP">
+     <div id="portfolioBody">
+      <div class="pfGrid">
+       <div class="pfCard" id="pfAa">
+        <h3>A/A+ SETUP SYSTEM · paper</h3>
+        <div class="m">TODAY <span id="pfAaDay">—</span></div>
+        <div class="m">ALL <span id="pfAaAll">—</span></div>
+        <div class="pfNote" id="pfAaMeta"></div>
+       </div>
+       <div class="pfCard" id="pfWl">
+        <h3>WATCH-LONG · paper</h3>
+        <div class="m">TODAY <span id="pfWlDay">—</span></div>
+        <div class="m">ALL <span id="pfWlAll">—</span></div>
+        <div class="pfNote" id="pfWlMeta"></div>
+       </div>
+       <div class="pfCard" id="pfIce">
+        <h3>ICEBERG · paper (BASE+A2+C)</h3>
+        <div class="m">TODAY <span id="pfIceDay">—</span></div>
+        <div class="m">ALL <span id="pfIceAll">—</span></div>
+        <div class="pfNote" id="pfIceMeta"></div>
+       </div>
+       <div class="pfCard" id="pfMech">
+        <h3>MECH · paper (net of costs)</h3>
+        <div class="m">TODAY <span id="pfMechDay">—</span></div>
+        <div class="m">ALL <span id="pfMechAll">—</span></div>
+        <div class="pfNote" id="pfMechMeta"></div>
+       </div>
+       <div class="pfCard">
+        <h3>COMBINED (all paper books, not one strategy)</h3>
+        <div class="m">DAY <span id="pfSumDay">—</span></div>
+        <div class="m">TOTAL <span id="pfSumAll">—</span></div>
+        <div class="pfNote" id="pfSumMeta">A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net. CAP* shadows are empty. Broker holdings are not in this sum.</div>
+       </div>
+      </div>
+      <div class="pfBooks">
+       <div class="panel"><div class="lbl"><span>A/A+ EQUITY CURVE · today's closed paper</span></div><svg class="curve" id="pfAaCurve"></svg></div>
+       <div class="panel"><div class="lbl"><span>ICEBERG EQUITY CURVE · today's closed paper</span></div><svg class="curve" id="pfIceCurve"></svg></div>
+      </div>
+      <div class="panel" style="margin-top:8px"><div class="lbl"><span>COMBINED SESSION CURVE · today</span></div><svg class="curve" id="pfCombCurve"></svg></div>
+      <div class="panel" style="margin-top:8px"><div class="lbl"><span>ALL-TIME EQUITY · realised by exit date · all paper books</span></div><svg class="curve" id="pfHistCurve"></svg></div>
+      <div class="aaSub" style="color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:10px 0 4px">A/A+ HOLDINGS · paper</div>
+      <div class="scroll" id="pfAaTable"></div>
+      <div class="aaSub" style="color:#3DDBD9;font-size:9px;letter-spacing:.1em;margin:10px 0 4px">ICEBERG HOLDINGS · paper</div>
+      <div class="scroll" id="pfIceTable"></div>
+      <div class="aaSub" style="color:var(--amber);font-size:9px;letter-spacing:.1em;margin:12px 0 4px">BROKER ACCOUNTS · read-only · never places orders</div>
+      <div class="dm" style="white-space:normal;margin-bottom:6px">Angel One and Zerodha Kite can be added later for a holdings / P&amp;L view only. Connect is not wired yet and this terminal does not ask for or store API keys, secrets, PINs, or TOTP seeds.</div>
+      <div class="brokerGrid" id="brokerCards"></div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div class="foot"><span id="upd">—</span><span>GitHub data ~30s · tunnel live ho to ~2s · IST · paper/demo only</span></div>
+</div>
+<div id="brokerModal"><div class="modalbox"><div class="h" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 id="brokerModalTitle">Connect</h2><button type="button" class="btn" id="brokerModalClose">Close</button></div><div id="brokerModalBody"></div></div></div>
+<script>
+/* Chart buttons -> live Pro chart (drawing tools + indicators) on the tunnel host. Falls back to chart.html when no tunnel. */
+(function(){
+ var hj=null;
+ function load(){fetch('host.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){hj=j&&j.host||null}).catch(function(){})}
+ load();setInterval(load,60000);
+ function host(){try{var s=window.NL&&NL.status();if(s&&s.host)return s.host}catch(e){}return hj}
+ /* 18 Nov chartfix: only send to the tunnel when this page has a key AND nl-data verified a tunnel with it;
+    otherwise keep chart.html (GitHub data, works without key) instead of opening a 403 'forbidden' page. */
+ function vhost(){try{var s=window.NL&&NL.status();if(s&&s.host&&s.mode==='tunnel')return s.host}catch(e){}return null}
+ function fix(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html?"]');if(!a)return;
+  if(!new URLSearchParams(location.search).get('k'))return;var h=vhost();if(!h)return;
+  var u=new URL(a.getAttribute('href'),location.href),q=u.searchParams,opt=q.get('tab')==='option';a.href=h+(opt?'/?':'/pro?')+q.toString();}
+ ['pointerdown','touchstart','mouseover','focusin','click'].forEach(function(ev){document.addEventListener(ev,fix,{capture:true,passive:true})});
+ window.__proHost=host;
+})();
+</script>
+<script src="nl-data.js?v=3"></script>
+<script src="app.js?v=2"></script></body></html>
