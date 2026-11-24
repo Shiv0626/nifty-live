@@ -125,7 +125,7 @@ function synth(p){
     case "/api/sectors":return bundle.sectors||{sectors:[],err:"github: sector data nahi"};
     case "/api/candles":return candles((qs.get("symbol")||"NIFTY").toUpperCase(),qs.get("tf")||"5m");
     case "/api/option":return option(qs.get("symbol"),qs.get("type"),qs.get("tf")||"1m");
-    case "/api/symbols":{const s=bundle.symbols||{};return {symbols:[...(s.n50||[]),...(s.indices||[])],n50:s.n50||[],indices:s.indices||[],extra:s.extra||[]}}
+    case "/api/symbols":{const s=bundle.symbols||{};return {symbols:[...(s.indices||[]),...(s.fo||s.n50||[])],n50:s.n50||[],indices:s.indices||[],fo:s.fo||[],extra:s.extra||[]}}
   }
   throw new Error("HTTP 404");
 }

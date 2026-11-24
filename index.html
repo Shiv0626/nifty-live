@@ -397,7 +397,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
  window.__proHost=host;
 })();
 </script>
-<script src="nl-data.js?v=fefc016f"></script>
+<script src="nl-data.js?v=ea307a14"></script>
 <script>
 (function(){
 const K=new URLSearchParams(location.search).get("k")||"";
@@ -1003,8 +1003,24 @@ async function pollLoop(){clearTimeout(nextPoll);try{await refresh()}catch(e){co
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){clearTimeout(nextPoll);if(!inFlight)pollLoop()}});
 window.addEventListener("online",()=>{clearTimeout(nextPoll);if(!inFlight)pollLoop()});
 
+function defaultIndices(){ return ["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","NIFTYNXT50","SENSEX","BANKEX","SENSEX50","INDIAVIX","NIFTY100","NIFTY200","NIFTY500","NIFTYMIDCAP50","NIFTYMIDCAP100","NIFTYMIDCAP150","NIFTYSMLCAP50","NIFTYSMLCAP100","NIFTYSMLCAP250","NIFTYIT","NIFTYAUTO","NIFTYPHARMA","NIFTYMETAL","NIFTYFMCG","NIFTYENERGY","NIFTYREALTY","NIFTYMEDIA","NIFTYPSUBANK","NIFTYPVTBANK","NIFTYINFRA","NIFTYPSE","NIFTYMNC","NIFTYCONSUMPTION","NIFTYCOMMODITIES","NIFTYCPSE","NIFTYSERVSECTOR"]; }
+function indexList(){
+ try{
+  const b=(typeof NL!=="undefined"&&NL.bundle&&NL.bundle.symbols)||{};
+  if(b.indices&&b.indices.length) return b.indices.slice();
+ }catch(e){}
+ return defaultIndices();
+}
+function foList(){
+ try{
+  const b=(typeof NL!=="undefined"&&NL.bundle&&NL.bundle.symbols)||{};
+  if(b.fo&&b.fo.length) return b.fo.slice();
+  if(b.n50&&b.n50.length) return b.n50.slice();
+ }catch(e){}
+ return [];
+}
 function researchSymbols(){
- const set=new Set(["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","INDIAVIX"]);
+ const set=new Set(defaultIndices());
  const st=(D&&D.state)||{};
  [...((D&&D.setups&&D.setups.setups)||[]),...(st.setups||[]),...(st.watch||[])].forEach(s=>{if(s&&s.symbol)set.add(s.symbol)});
  const ice=(D&&D.iceberg&&D.iceberg.signals)||{};
@@ -1013,11 +1029,11 @@ function researchSymbols(){
  return set;
 }
 function watchUniverse(){
- const set=new Set(["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","INDIAVIX"]);
+ const set=new Set(indexList());
+ foList().forEach(s=>{if(s)set.add(s)});
  try{
   const b=(typeof NL!=="undefined"&&NL.bundle&&NL.bundle.symbols)||{};
   (b.n50||[]).forEach(s=>{if(s)set.add(s)});
-  (b.indices||[]).forEach(s=>{if(s)set.add(s)});
   (b.extra||[]).forEach(s=>{if(s&&!/\d(CE|PE)$/.test(s))set.add(s)});
  }catch(e){}
  researchSymbols().forEach(s=>{if(s)set.add(s)});
@@ -1042,22 +1058,38 @@ function lastSessionLabel(){
 }
 function renderWatchlist(){
  const box=$("watchlist"); if(!box) return;
- const pinned=["NIFTY","BANKNIFTY","FINNIFTY","MIDCPNIFTY","SENSEX","INDIAVIX"];
+ const idxOrder=indexList();
+ const idxSet=new Set(idxOrder);
  const q=wlFilter.trim().toLowerCase();
  const rows=[];
  watchUniverse().forEach(sym=>{
   if(!sym||/\d(CE|PE)$/.test(sym)) return;
   if(q && !String(sym).toLowerCase().includes(q)) return;
   const x=L[sym]||{};
-  rows.push({symbol:sym,ltp:x.ltp,pct:x.pct});
+  rows.push({symbol:sym,ltp:x.ltp,pct:x.pct,index:idxSet.has(sym)});
  });
  rows.sort((a,b)=>{
-  const pa=pinned.indexOf(a.symbol), pb=pinned.indexOf(b.symbol);
-  if(pa>=0||pb>=0) return (pa<0?100:pa)-(pb<0?100:pb);
+  if(a.index||b.index){
+   if(a.index&&b.index){
+    const pa=idxOrder.indexOf(a.symbol), pb=idxOrder.indexOf(b.symbol);
+    return (pa<0?999:pa)-(pb<0?999:pb);
+   }
+   return a.index?-1:1;
+  }
   return String(a.symbol).localeCompare(String(b.symbol));
  });
  const note=quotesAreLastSession()?`<div class="m" style="padding:6px 8px">${esc(lastSessionLabel())}</div>`:"";
- box.innerHTML=note+rows.map(x=>`<a class="wlrow ${x.symbol===chartSym?"on":""}" href="${chartHref(x.symbol)}" data-sym="${esc(x.symbol)}"><span class="wls">${esc(x.symbol)}</span><span class="wlpx">${x.ltp==null?"—":f(x.ltp, x.symbol==="INDIAVIX"?2:2)}</span><span class="wlp ${cl(x.pct)}">${x.pct==null||x.pct===undefined?"—":sg(x.pct)+"%"}</span></a>`).join("")||'<div class="m" style="padding:8px">No symbols</div>';
+ const rowHtml=x=>`<a class="wlrow ${x.symbol===chartSym?"on":""}" href="${chartHref(x.symbol)}" data-sym="${esc(x.symbol)}"><span class="wls">${esc(x.symbol)}</span><span class="wlpx">${x.ltp==null?"—":f(x.ltp, x.symbol==="INDIAVIX"?2:2)}</span><span class="wlp ${cl(x.pct)}">${x.pct==null||x.pct===undefined?"—":sg(x.pct)+"%"}</span></a>`;
+ let html=note;
+ if(!q){
+  const ix=rows.filter(r=>r.index), st=rows.filter(r=>!r.index);
+  if(ix.length) html+=`<div class="m" style="padding:8px 8px 2px">INDICES · ${ix.length}</div>`+ix.map(rowHtml).join("");
+  if(st.length) html+=`<div class="m" style="padding:10px 8px 2px">F&amp;O STOCKS · ${st.length}</div>`+st.map(rowHtml).join("");
+  if(!ix.length&&!st.length) html+='<div class="m" style="padding:8px">No symbols</div>';
+ }else{
+  html+=rows.map(rowHtml).join("")||'<div class="m" style="padding:8px">No symbols</div>';
+ }
+ box.innerHTML=html;
 }
 function forceChart(){ lastChartPoll=0; if(!inFlight){clearTimeout(nextPoll);pollLoop()} }
 function closeWatchlist(){ document.body.classList.remove("wl-open"); }
