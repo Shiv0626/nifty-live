@@ -153,7 +153,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
 .nmMeta{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nmH{font-family:var(--hi);font-size:13px;line-height:1.3;color:var(--text);white-space:normal;overflow-wrap:anywhere}
 .nmInfo{color:var(--amber);font-size:9px;letter-spacing:.08em}
-.pfGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.pfGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
 .pfCard{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px}
 .pfCard h3{margin:0 0 4px;font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:700}
 .pfStat{font-family:var(--mono);font-size:16px;margin:2px 0}
@@ -320,24 +320,37 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
         <div class="m">ALL <span id="pfAaAll">—</span></div>
         <div class="pfNote" id="pfAaMeta"></div>
        </div>
+       <div class="pfCard" id="pfWl">
+        <h3>WATCH-LONG · paper</h3>
+        <div class="m">TODAY <span id="pfWlDay">—</span></div>
+        <div class="m">ALL <span id="pfWlAll">—</span></div>
+        <div class="pfNote" id="pfWlMeta"></div>
+       </div>
        <div class="pfCard" id="pfIce">
-        <h3>ICEBERG · paper</h3>
+        <h3>ICEBERG · paper (BASE+A2+C)</h3>
         <div class="m">TODAY <span id="pfIceDay">—</span></div>
         <div class="m">ALL <span id="pfIceAll">—</span></div>
         <div class="pfNote" id="pfIceMeta"></div>
        </div>
+       <div class="pfCard" id="pfMech">
+        <h3>MECH · paper (net of costs)</h3>
+        <div class="m">TODAY <span id="pfMechDay">—</span></div>
+        <div class="m">ALL <span id="pfMechAll">—</span></div>
+        <div class="pfNote" id="pfMechMeta"></div>
+       </div>
        <div class="pfCard">
-        <h3>COMBINED (sum of books, not one strategy)</h3>
+        <h3>COMBINED (all paper books, not one strategy)</h3>
         <div class="m">DAY <span id="pfSumDay">—</span></div>
         <div class="m">TOTAL <span id="pfSumAll">—</span></div>
-        <div class="pfNote">Books stay separate. Combined is only a sum for a glance.</div>
+        <div class="pfNote" id="pfSumMeta">A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net. CAP* shadows are empty. Broker holdings are not in this sum.</div>
        </div>
       </div>
       <div class="pfBooks">
        <div class="panel"><div class="lbl"><span>A/A+ EQUITY CURVE · today's closed paper</span></div><svg class="curve" id="pfAaCurve"></svg></div>
        <div class="panel"><div class="lbl"><span>ICEBERG EQUITY CURVE · today's closed paper</span></div><svg class="curve" id="pfIceCurve"></svg></div>
       </div>
-      <div class="panel" style="margin-top:8px"><div class="lbl"><span>COMBINED SESSION CURVE</span></div><svg class="curve" id="pfCombCurve"></svg></div>
+      <div class="panel" style="margin-top:8px"><div class="lbl"><span>COMBINED SESSION CURVE · today</span></div><svg class="curve" id="pfCombCurve"></svg></div>
+      <div class="panel" style="margin-top:8px"><div class="lbl"><span>ALL-TIME EQUITY · realised by exit date · all paper books</span></div><svg class="curve" id="pfHistCurve"></svg></div>
       <div class="aaSub" style="color:#4CC9F0;font-size:9px;letter-spacing:.1em;margin:10px 0 4px">A/A+ HOLDINGS · paper</div>
       <div class="scroll" id="pfAaTable"></div>
       <div class="aaSub" style="color:#3DDBD9;font-size:9px;letter-spacing:.1em;margin:10px 0 4px">ICEBERG HOLDINGS · paper</div>
@@ -689,6 +702,7 @@ function setupCard(s,watch){
  if(lowr) badge=`<span class="badge m" style="border:1px dotted currentColor">TRIGGER · &lt;1R</span>`;
  else if(trig) badge=`<span class="badge g" style="border:1px solid currentColor">${esc(s.side||"LONG")} ${esc(s.grade||"A")} · TRIGGERED</span>`;
  else if(watch) badge=`<span class="badge a" style="border:1px solid currentColor">WATCH · ${esc(s.grade||"A")} on 5m close ${(sgn>0?">":"<")}${esc(s.entry)}</span>`;
+ else if((s.paper_status||s.awaiting||s.note||"")==="waiting pullback-break") badge=`<span class="badge a" style="border:1px solid currentColor">${esc(s.grade||"A")} · waiting pullback-break</span>`;
  else badge=`<span class="badge ${gc}" style="border:1px solid currentColor">${esc(s.grade||"")}</span>`;
  const cls=lowr?" lowr":(trig?"":(watch?" watch":""));
  return `<div class="card${cls}${trig?" triggered":""}"><div class="h"><span><b class="${sgn>0?"g":"p"}">${sgn>0?"▲":"▼"} ${esc(s.symbol)}</b> ${badge} <span class="m">${esc(s.time||"")}</span></span>
@@ -792,12 +806,11 @@ function renderHeat(){
  $("breadth").innerHTML=`<span class="g">${up}↑</span> <span class="p">${qs.length-up}↓</span> <span class="dm">${esc(as)}</span>`;
  $("heat").innerHTML=groups.map(g=>`<div class="sec">${esc(g.n)} <span class="${cl(g.avg)}">${sg(g.avg)}%</span></div>`+g.a.map(q=>`<a class="tile" style="background:${heatBg(q.pct)}" href="${tv(q.symbol)}" target="_blank" rel="noreferrer"><b>${esc(q.symbol)}</b><br>${f(q.ltp)} ${sg(q.pct)}%</a>`).join("")).join("")||'<div class="m">waiting for live quotes</div>';
 }
-function btstPnl(){
- const bp=(D&&D.state&&D.state.btst_paper)||{},T=bp.total||{},rows=bp.rows||[];if(!T.trades&&!rows.length)return "";
- const cls=v=>v>0?"g":(v<0?"p":"dm"),inr=v=>(v<0?"-₹":"₹")+Math.abs(Math.round(v||0)).toLocaleString("en-IN");
- const op=rows.filter(r=>r.status==="OPEN").map(r=>`<div class="m" style="font-size:11px">OPEN · ${esc(r.symbol)} ${esc(r.contract||"")} @ ${esc(r.entry_premium)} × ${esc(r.qty)} · ${esc(String(r.entry_time||"").slice(11,16))} IST · exit ${esc(r.exit_date||"")}</div>`).join("");
- return `<div class="card"><div class="h"><span><b>BTST book · paper</b> <span class="dm" style="font-size:11px">(alag book · sirf closed P&L)</span></span></div>
- <div class="m">ALL <b class="${cls(T.net)}">${inr(T.net)}</b> net · ${(T.R>0?"+":"")+(T.R??0)}R · ${T.trades||0} trades · ${T.wins||0}W (${T.winRate??0}%) · charges ${inr(T.charges)}</div>${op}</div>`;
+function backtestNoteText(){
+ const n=(D&&D.backtest_note)||(D&&D.state&&D.state.backtest_note)||{};
+ if(n&&n.text) return String(n.text);
+ try{const e=$("backtestNoteSrc"); if(e){const j=JSON.parse(e.textContent); if(j&&j.text) return String(j.text)}}catch(err){}
+ return "1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)";
 }
 function renderBtst(){
  const b=(D&&D.state&&D.state.btst)||{},p=b.picks||[];$("btstN").textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
@@ -806,13 +819,6 @@ function renderBtst(){
  ${x.option?`<div class="lv" style="grid-template-columns:1fr"><span class="m">OPT <b class="a">${esc(x.option)}</b> ${esc(x.prem||"")}${x.lot?" · lot "+esc(x.lot):""}${x.risk_1lot?" · risk ₹"+esc(x.risk_1lot)+"/lot":""}</span></div>`:""}
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
  <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
- $("btst").insertAdjacentHTML("afterbegin",btstPnl());
-}
-function backtestNoteText(){
- const n=(D&&D.backtest_note)||(D&&D.state&&D.state.backtest_note)||{};
- if(n&&n.text) return String(n.text);
- try{const e=$("backtestNoteSrc"); if(e){const j=JSON.parse(e.textContent); if(j&&j.text) return String(j.text)}}catch(err){}
- return "1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)";
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
@@ -823,6 +829,9 @@ function renderPaper(){
  let h=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">TODAY <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b></span><span class="m">TRADES <b>${d.trades||0}</b></span><span class="m">ALL <b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b></span><span class="m">WIN <b class="a">${f(t.winRate,0)}% (${t.trades||0})</b></span></div>`+(d.charges!=null?`<div class="m" style="margin:2px 0 4px">NET today <b class="${cl(d.pnl_net)}">₹${sg(d.pnl_net,0)} / ${sg(d.r_net)}R</b> · charges ₹${f(d.charges||0,0)} · slippage ₹${f(d.slippage||0,0)} · all net <b class="${cl(t.pnl_net)}">₹${sg(t.pnl_net,0)}</b> (charges ₹${f(t.charges||0,0)} · slippage ₹${f(t.slippage||0,0)})</div>`:"");
  const op=p.open||[],td=p.today||[];
  h+=`<table><tr><th>OPEN</th><th>LOTS</th><th>FILL</th><th>LTP</th><th>SL</th><th>T1</th><th>T2</th><th>uPnL</th></tr>`+(op.map(o=>{const c2c=o.c2c||o.cost_moved||o.t1_done;const lotsLbl=`${o.qtyOpenLots??o.lots??1}${c2c?' <span class="a">C2C</span>':''}`;return `<tr><td><span class="${o.side==="LONG"?"g":"p"}">${o.side==="LONG"?"▲":"▼"}</span> ${esc(o.mode==="option"&&o.contract?o.contract.replace(/^([A-Z&-]+?)\d{2}[A-Z]{3}\d{2}(\d+(?:\.\d+)?)(CE|PE)$/,"$1 $2$3"):o.symbol)}</td><td>${lotsLbl}</td><td>${f(o.fill)}</td><td>${f(o.ltp)}</td><td class="p">${f(o.sl)}${c2c?' <span class="a">C2C</span>':''}</td><td class="g">${f(o.t1)}</td><td class="g">${o.t2!=null?f(o.t2):"—"}</td><td class="${cl(o.uPnl)}">₹${sg(o.uPnl,0)} ${o.uR!=null?sg(o.uR)+"R":""}</td></tr>`}).join("")||`<tr><td colspan="8" class="m">no open positions</td></tr>`)+`</table>`;
+ const pend=(p.pending||[]).filter(x=>x&& (x.status==="waiting pullback-break"||x.note==="waiting pullback-break"));
+ if(pend.length)h+=`<table style="margin-top:4px"><tr><th>WAITING</th><th>SIDE</th><th>STATUS</th><th>SL</th><th>T1</th></tr>`+pend.map(x=>`<tr><td><span class="${x.side==="LONG"?"g":"p"}">${x.side==="LONG"?"▲":"▼"}</span> ${esc(x.contract||x.symbol)}</td><td>${esc(x.side||"")}</td><td class="a">${esc(x.grade||"A")} · waiting pullback-break</td><td class="p">${f(x.spot_sl||x.sl)}</td><td class="g">${f(x.spot_t1||x.t1)}</td></tr>`).join("")+`</table>`;
+
  if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";const note=x.note||x.close_note||"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`+(note?`<tr><td colspan="5" class="dm" style="white-space:normal">${esc(x.reason?x.reason+" — ":"")}${esc(note)}</td></tr>`:"")}).join("")+`</table>`;
  $("paper").innerHTML=h;
 }
@@ -859,11 +868,11 @@ function renderVariants(){
  if(dc.length)h+=`<table style="margin-top:4px"><tr><th>DECISIONS (latest)</th><th>SIDE</th><th>STATE</th><th>WHY</th></tr>`+dc.slice().reverse().slice(0,15).map(z=>`<tr><td>${esc(z.time||"")} ${esc(z.symbol||"")}</td><td>${lab(z.side)}</td><td>${esc(z.state||"")}</td><td class="dm" style="white-space:normal">${esc(z.reason||"")}</td></tr>`).join("")+`</table>`;
  tl.innerHTML=h;
 }
-const EXP_LIVEPNL=false; /* user rule 11 Nov: no open/unrealised P&L on the GitHub page */
 function renderExpiry(){
  const el=$("expiryBox"); if(!el) return;
  const X=(D&&D.state&&D.state.expiry)||null;
  if(!X){el.innerHTML='<div class="m">Expiry engine data abhi nahi aaya.</div>';return}
+ const EXP_LIVEPNL=false; /* user rule 11 Nov: no open/unrealised P&L on the GitHub page */
  const LIVEPNL=(typeof EXP_LIVEPNL!=="undefined")?EXP_LIVEPNL:true;
  const nm=c=>String(c||"").replace(/^(SENSEX|BANKEX)\d{2}[A-Z0-9]\d{2}(\d+)(CE|PE)$/,"$1 $2$3").replace(/^([A-Z]+)\d{2}[A-Z]{3}\d{2}(\d+)(CE|PE)$/,"$1 $2$3");
  const md=X.mode_today||{};
@@ -1008,7 +1017,6 @@ function renderBtstLocal(){
  <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
  <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join(""):'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
- box.insertAdjacentHTML("afterbegin",btstPnl());
 }
 function iceHoldings(sig){
  const rows=((sig&&sig.rows)||[]).filter(r=>!r.backfill && /^(OPEN|T1_DONE|CLOSED)$/.test(String(r.status||"")));
@@ -1062,23 +1070,61 @@ function cumPts(items){
  items.forEach(x=>{c+=Number(x.pnl)||0; pts.push({t:x.t||"",v:c});});
  return pts;
 }
+function iceBooksSum(){
+ const books=(D&&D.iceberg_books&&D.iceberg_books.books)||{};
+ const names=["BASE","A2","C"];
+ let dayP=0,dayR=0,allP=0,allR=0,dayT=0,allT=0,open=0,bits=[];
+ let used=false;
+ for(const n of names){
+  const b=books[n]||{};
+  if(!b.today && !b.all) continue;
+  used=true;
+  const tod=b.today||{}, all=b.all||{};
+  dayP+=Number(tod.total_pnl)||0; dayR+=Number(tod.total_r)||0; dayT+=Number(tod.trades)||0;
+  allP+=Number(all.total_pnl)||0; allR+=Number(all.total_r)||0; allT+=Number(all.trades)||0;
+  open+=Number(b.open_now)||0;
+  bits.push(`${n} ₹${sg(all.total_pnl,0)}`);
+ }
+ if(!used){
+  const st=((D&&D.iceberg&&D.iceberg.signals)||{}).stats||{};
+  const tod=st.today||{}, all=st.all||{};
+  return {dayP:Number(tod.total_pnl)||0,dayR:Number(tod.total_r)||0,allP:Number(all.total_pnl)||0,allR:Number(all.total_r)||0,dayT:tod.trades||0,allT:all.trades||0,open:st.open_now||0,meta:"BASE only (books feed missing)"};
+ }
+ return {dayP,dayR,allP,allR,dayT,allT,open,meta:bits.join(" · ")};
+}
 function renderPortfolio(){
  const root=$("portfolioBody"); if(!root) return;
  const p=(D&&D.paper)||{}, d=p.day||{}, t=p.total||{};
  const sig=(D&&D.iceberg&&D.iceberg.signals)||{};
- const st=sig.stats||{}, tod=st.today||{}, all=st.all||{};
+ const w=(D&&D.state&&D.state.watch_long)||(D&&D.watch_long)||{};
+ const wd=w.day||{}, wt=w.total||{};
+ const vbooks=(((D&&D.state&&D.state.variants)||{}).books)||[];
+ const mech=(Array.isArray(vbooks)?vbooks:[]).find(b=>String((b&&b.book)||"").includes("MECH"))||{};
+ const md=mech.day||{}, mt=mech.total||{};
+ const ice=iceBooksSum();
  const aaRows=aaHoldings(p), iceRows=iceHoldings(sig);
  const aaOpen=aaRows.filter(r=>r.status==="OPEN").length, iceOpen=iceRows.filter(r=>r.status!=="CLOSED").length;
- root.querySelector("#pfAaDay").innerHTML=`<b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b>`;
- root.querySelector("#pfAaAll").innerHTML=`<b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b>`;
- root.querySelector("#pfAaMeta").textContent=`win ${f(t.winRate,0)}% · ${t.trades||0} trades · open ${aaOpen}`;
- root.querySelector("#pfIceDay").innerHTML=`<b class="${cl(tod.total_pnl)}">₹${sg(tod.total_pnl,0)} / ${sg(tod.total_r,2)}R</b>`;
- root.querySelector("#pfIceAll").innerHTML=`<b class="${cl(all.total_pnl)}">₹${sg(all.total_pnl,0)} / ${sg(all.total_r,2)}R</b>`;
- root.querySelector("#pfIceMeta").textContent=`win ${iceWr(tod.win_rate)} · ${tod.trades||0} closed · open ${st.open_now||iceOpen}`+(st.note?` · ${st.note}`:"");
- const sumD=(Number(d.pnl)||0)+(Number(tod.total_pnl)||0);
- const sumA=(Number(t.pnl)||0)+(Number(all.total_pnl)||0);
- root.querySelector("#pfSumDay").innerHTML=`<b class="${cl(sumD)}">₹${sg(sumD,0)}</b>`;
- root.querySelector("#pfSumAll").innerHTML=`<b class="${cl(sumA)}">₹${sg(sumA,0)}</b>`;
+ const setH=(id,html)=>{const el=root.querySelector("#"+id); if(el) el.innerHTML=html;};
+ const setT=(id,txt)=>{const el=root.querySelector("#"+id); if(el) el.textContent=txt;};
+ setH("pfAaDay",`<b class="${cl(d.pnl)}">₹${sg(d.pnl,0)} / ${sg(d.r)}R</b>`);
+ setH("pfAaAll",`<b class="${cl(t.pnl)}">₹${sg(t.pnl,0)} / ${sg(t.r)}R</b>`);
+ setT("pfAaMeta",`win ${f(t.winRate,0)}% · ${t.trades||0} trades · open ${aaOpen}`);
+ setH("pfWlDay",`<b class="${cl(wd.pnl)}">₹${sg(wd.pnl,0)} / ${sg(wd.r)}R</b>`);
+ setH("pfWlAll",`<b class="${cl(wt.pnl)}">₹${sg(wt.pnl,0)} / ${sg(wt.r)}R</b>`);
+ setT("pfWlMeta",`win ${f(wt.winRate,0)}% · ${wt.trades||0} trades · open ${(w.open||[]).length}`);
+ setH("pfIceDay",`<b class="${cl(ice.dayP)}">₹${sg(ice.dayP,0)} / ${sg(ice.dayR,2)}R</b>`);
+ setH("pfIceAll",`<b class="${cl(ice.allP)}">₹${sg(ice.allP,0)} / ${sg(ice.allR,2)}R</b>`);
+ setT("pfIceMeta",`${ice.meta||""} · today ${ice.dayT||0} closed · open ${ice.open||iceOpen}`);
+ setH("pfMechDay",`<b class="${cl(md.pnl)}">₹${sg(md.pnl,0)} / ${sg(md.r)}R</b>`);
+ setH("pfMechAll",`<b class="${cl(mt.pnl)}">₹${sg(mt.pnl,0)} / ${sg(mt.r)}R net</b>`);
+ setT("pfMechMeta",`gross ₹${sg(mt.pnl_gross||md.pnl_gross,0)} · ${(mt.charges??md.charges)!=null?`charges ₹${sg(mt.charges??md.charges,0)} · slippage ₹${sg(mt.slippage??md.slippage,0)}`:`costs ₹${sg(mt.costs||md.costs,0)}`} · ${mt.trades||0} trades · open ${(mech.open||[]).length}`);
+ const sumD=(Number(d.pnl)||0)+(Number(wd.pnl)||0)+ice.dayP+(Number(md.pnl)||0);
+ const sumA=(Number(t.pnl)||0)+(Number(wt.pnl)||0)+ice.allP+(Number(mt.pnl)||0);
+ const hist=((D&&D.portfolio_history)||{}).combined||{};
+ const histAll=(hist.all&&hist.all.pnl!=null)?Number(hist.all.pnl):sumA;
+ setH("pfSumDay",`<b class="${cl(sumD)}">₹${sg(sumD,0)}</b>`);
+ setH("pfSumAll",`<b class="${cl(histAll)}">₹${sg(histAll,0)}</b>`);
+ setT("pfSumMeta",`A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net. CAP* empty. Broker holdings not included. A/A++iceberg only ₹${sg((Number(t.pnl)||0)+ice.allP,0)}.`);
  const th=`<tr><th>BOOK</th><th>SYMBOL</th><th>SIDE</th><th>INSTRUMENT</th><th>QTY</th><th>AVG</th><th>LTP / EXIT</th><th>₹ P&amp;L</th><th>R</th><th>STATUS</th></tr>`;
  root.querySelector("#pfAaTable").innerHTML=`<table>${th}`+(aaRows.map(holdRow).join("")||`<tr><td colspan="10" class="m">no A/A+ paper rows today</td></tr>`)+`</table>`;
  root.querySelector("#pfIceTable").innerHTML=`<table>${th}`+(iceRows.map(holdRow).join("")||`<tr><td colspan="10" class="m">no iceberg paper rows</td></tr>`)+`</table>`;
@@ -1088,6 +1134,13 @@ function renderPortfolio(){
  drawCurve("pfIceCurve", cumPts(iceClosed), "#3DDBD9");
  const merged=[...aaClosed.map(x=>({...x,_b:"aa"})),...iceClosed.map(x=>({...x,_b:"ice"}))].sort((a,b)=>String(a.t).localeCompare(String(b.t)));
  drawCurve("pfCombCurve", cumPts(merged), "#2962FF");
+ const eq=(((D&&D.portfolio_history)||{}).equity_curve)||[];
+ const histPts=eq.map(x=>({t:x.date,pnl:x.pnl,cum:x.cum}));
+ if(histPts.length){
+  const pts=histPts.map((x,i)=>({t:x.t,v:x.cum!=null?x.cum:null}));
+  // drawCurve expects cumPts items with .pnl; build synthetic cumulative points
+  drawCurve("pfHistCurve", histPts.map(x=>({t:x.t,pnl:x.pnl})), "#F5A623");
+ }
 }
 function brokerCard(a){
  const creds=(a.credentials_required||[]).map(c=>`<li><b>${esc(c.name)}</b> — ${esc(c.why)}</li>`).join("");
