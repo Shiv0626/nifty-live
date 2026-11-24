@@ -30,7 +30,11 @@ const f=document.getElementById('f'),m=document.getElementById('m'),fb=document.
 let cur=null,mode='init',snap=null,snapHosts=[],lastApi=0,deadSince=0;
 const REPO='Shiv0626/nifty-live',API='https://api.github.com/repos/'+REPO,RAW='https://raw.githubusercontent.com/'+REPO+'/';
 function to(u,ms,o){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({signal:c.signal,cache:'no-store'},o||{})).finally(()=>clearTimeout(t));}
-async function getJ(u,ms,o){const r=await to(u,ms,o);if(!r.ok)throw new Error(r.status);return r.json();}
+/* 25 Nov: data-branch snapshots are AES-GCM sealed; key = ?k= or the one remembered by the dashboard (localStorage nl_k) */
+const NLK=k||(function(){try{return localStorage.getItem('nl_k')||''}catch(e){return ''}})();let _ck=null;
+async function dkey(){if(_ck)return _ck;if(!NLK)throw new Error('key (?k=) nahi mili');const b=await crypto.subtle.importKey('raw',new TextEncoder().encode(NLK),'PBKDF2',false,['deriveKey']);return _ck=await crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('nifty-live-v1'),iterations:200000,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,['decrypt']);}
+async function unseal(j){if(!j||j.enc!=='aesgcm')return j;const b64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(j.iv)},await dkey(),b64(j.ct));return JSON.parse(new TextDecoder().decode(pt));}
+async function getJ(u,ms,o){const r=await to(u,ms,o);if(!r.ok)throw new Error(r.status);return unseal(await r.json());}
 function collect(j,l){if(!j)return l;const add=u=>{if(typeof u==='string'&&u.startsWith('https://')&&!l.includes(u))l.push(u)};add(j.host);if(Array.isArray(j.hosts))j.hosts.forEach(add);return l;}
 async function loadHosts(useApi){
   const l=[];
