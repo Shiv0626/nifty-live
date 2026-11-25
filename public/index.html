@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#131722"/>
+<meta name="robots" content="index,follow"/>
+<title>Nifty 50 Setup Dashboard · Public</title>
+<link rel="stylesheet" href="app.css?v=1">
+</head>
+<body>
+<div id="app">
+  <header class="tvbar">
+    <span class="ttl">SETUP_WATCH</span>
+    <span class="pubtag">PUBLIC</span>
+    <span class="live m" id="live">● —</span>
+    <span class="srcb warn" id="srcBadge">● data load ho rahi hai…</span>
+    <span class="clock" id="istClock">— IST</span>
+  </header>
+  <div class="banner" id="banner">Paper/demo trading only, not advice</div>
+  <main id="main">
+    <section class="panel" id="idxP">
+      <div class="lbl"><span>INDICES</span><span id="sessDate">—</span></div>
+      <div class="idxrow" id="indices"></div>
+    </section>
+    <section class="panel" id="setupP">
+      <div class="lbl"><span>TODAY'S SETUPS / SIGNALS</span><span id="setupsN"></span></div>
+      <div id="setups" class="cards"></div>
+    </section>
+    <section class="panel" id="bookP">
+      <div class="lbl"><span>BOOKED PAPER P&amp;L</span><span>closed trades only</span></div>
+      <div class="bookgrid" id="books"></div>
+      <div class="aaSub">TODAY'S BOOKED TRADES</div>
+      <div class="scroll" id="bookedTrades"></div>
+    </section>
+    <section class="panel" id="btstP">
+      <div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div>
+      <div id="btstNote" class="stats"></div>
+      <div class="aaSub">PICKS</div>
+      <div id="btstPicks" class="cards"></div>
+      <div class="aaSub">BOOKED RESULTS</div>
+      <div id="btstTotal" class="stats"></div>
+      <div class="scroll" id="btstRows"></div>
+    </section>
+    <section class="panel" id="heatP">
+      <div class="lbl"><span>INDEX / SECTOR HEAT</span><span><button type="button" class="hbtn on" id="heatBtn" data-mode="sector">SECTOR</button> <button type="button" class="hbtn" id="heatBtnN50" data-mode="n50">NIFTY 50</button></span></div>
+      <div class="heat" id="heat"></div>
+    </section>
+    <section class="panel" id="resP">
+      <div class="lbl"><span>RESULTS CALENDAR</span><span id="resAsOf"></span></div>
+      <div id="resLine" class="stats"></div>
+      <div id="resAfter" class="stats"></div>
+      <div id="resItems"></div>
+      <div id="resUpcoming" class="stats"></div>
+    </section>
+    <section class="panel" id="noteP">
+      <div class="lbl"><span>NOTES</span><span>backtest, not booked</span></div>
+      <div id="notes"></div>
+    </section>
+  </main>
+  <footer class="foot"><span id="upd">—</span><span>GitHub data ~30s · IST · Paper/demo trading only, not advice</span></footer>
+</div>
+<script src="app.js?v=1"></script>
+</body></html>
