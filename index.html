@@ -187,13 +187,15 @@
  /* 18 Nov chartfix: only send to the tunnel when this page has a key AND nl-data verified a tunnel with it;
     otherwise keep chart.html (GitHub data, works without key) instead of opening a 403 'forbidden' page. */
  function vhost(){try{var s=window.NL&&NL.status();if(s&&s.host&&s.mode==='tunnel')return s.host}catch(e){}return null}
- function fix(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html"],a[href*="go=chart"]');if(!a)return;
-  var u=new URL(a.getAttribute('href'),location.href),q=u.searchParams;
+ function isPrivChart(h){h=h||'';if(h.indexOf('chart-view.html')>=0)return false;return h.indexOf('chart.html')>=0||h.indexOf('go=chart')>=0}
+ function fix(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html"],a[href*="go=chart"],a[href*="chart-view.html"]');if(!a)return;
+  var raw=a.getAttribute('href')||'',u=new URL(raw,location.href),q=u.searchParams;
   var k=q.get('k')||new URLSearchParams(location.search).get('k');
   if(!k){try{var s=localStorage.getItem('nl_k');if(s&&/^[0-9a-f]{16,64}$/.test(s))k=s}catch(ex){}}
-  if(!k){q.delete('k');a.href='public/chart-view.html?'+q.toString();return}
+  if(!k){q.delete('k');a.href='public/chart-view.html?'+q.toString();a.target='_self';return}
+  if(!isPrivChart(raw)&&u.pathname.indexOf('chart-view.html')>=0)return;
   if(!q.get('k'))q.set('k',k);
-  var h=vhost();if(!h){if(u.pathname.indexOf('chart.html')>=0)a.href='chart.html?'+q.toString();return}
+  var h=vhost();if(!h){if(isPrivChart(raw)||u.pathname.indexOf('/chart.html')>=0)a.href='chart.html?'+q.toString();return}
   var opt=q.get('tab')==='option';a.href=h+(opt?'/?':'/pro?')+q.toString();}
  ['pointerdown','touchstart','mouseover','focusin','click'].forEach(function(ev){document.addEventListener(ev,fix,{capture:true,passive:true})});
  window.__proHost=host;

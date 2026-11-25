@@ -576,7 +576,7 @@ function renderChart(bars){
  const svg=$("chart"); if(!svg) return;
  const q=L[chartSym]||L[chartSym==="NIFTY"?"NIFTY":chartSym], W=svg.clientWidth||600,H=svg.clientHeight||220;
  const ttl=$("chartTitle"); if(ttl) ttl.textContent=(chartSym||"NIFTY")+" · "+chartTf.toUpperCase();
- const clink=$("chartLive"); if(clink){ clink.href=lc(chartSym==="NIFTY"?"NIFTY":chartSym); if(ON_PUBLIC) clink.target="_self"; }
+ const clink=$("chartLive"); if(clink){ const href=lc(chartSym==="NIFTY"?"NIFTY":chartSym); clink.href=href; if(ON_PUBLIC||href.indexOf("chart-view.html")>=0) clink.target="_self"; }
  const tvEl=$("niftyTv"); if(tvEl) tvEl.href=tv(chartSym||"NIFTY");
  if(!bars||!bars.length){svg.innerHTML="";return}
  let b=bars;
