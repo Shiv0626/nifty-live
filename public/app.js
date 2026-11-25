@@ -320,10 +320,41 @@ function stockNewsHtml(s){
  if(!items.length) return `<div class="snews m">समाचार · कोई नई हेडलाइन नहीं${asof?" · as of "+esc(asof):""}</div>`;
  return `<div class="snews">${items.slice(0,2).map(n=>`<div class="snewsL"><span class="nmeta">${esc(n.time||"")} · ${esc(n.source||"")}</span><div class="snewsH">${esc(n.hi||n.headline||"")}</div></div>`).join("")}</div>`;
 }
+function paperKey(x){return (String((x&&x.symbol)||"")+"|"+String((x&&x.side)||"")).toUpperCase()}
+function paperClosedRec(s){
+ const p=(D&&D.paper)||{};
+ const k=paperKey(s);
+ const open=new Set((p.open||[]).map(paperKey));
+ if(open.has(k)) return null;
+ return (p.today||[]).find(t=>paperKey(t)===k)||null;
+}
+function isClosedSetup(s){
+ if(!s) return false;
+ const st=String(s.status||"").toUpperCase();
+ if(st==="CLOSED") return true;
+ if(st==="WATCH"||st==="TRIGGERED"||st==="TRIGGERED_LOWR"||st==="TRIGGERED_PENDING_GRADE") return false;
+ return !!paperClosedRec(s);
+}
 function setupCard(s,watch){
  const q=L[s.symbol],risk=Math.abs((s.entry||0)-(s.sl||0)),sgn=s.side==="LONG"?1:-1;
  const st=String(s.status||"").toUpperCase();
  if(!(+s.t2>0))s=Object.assign({},s,{t2:null});
+ if(isClosedSetup(s)){
+  const rec=paperClosedRec(s)||{};
+  const exit=s.exit!=null?s.exit:rec.exit;
+  const et=s.exit_time||rec.exit_time||"";
+  const reason=s.exit_reason||s.reason||rec.reason||"";
+  const pnl=s.pnl!=null?s.pnl:rec.pnl;
+  const R=s.R!=null?s.R:(s.r!=null?s.r:rec.r);
+  const badge=`<span class="badge dm" style="border:1px solid currentColor">CLOSED</span>`;
+  const pnlH=pnl==null?"":` <b class="${cl(pnl)}">₹${sg(pnl,0)}${R!=null?" "+sg(R)+"R":""}</b>`;
+  return `<div class="card closed"><div class="h"><span><b class="${sgn>0?"g":"p"}">${sgn>0?"▲":"▼"} ${esc(s.symbol)}</b> ${badge} <span class="m">${esc(et||s.time||"")}</span></span>
+ <span>${exit!=null?`<span class="m">exit ${f(exit)}</span>`:""}${pnlH}</span></div>
+ <div class="lv"><span class="m">E <b class="dm">${f(s.fill!=null?s.fill:(rec.fill!=null?rec.fill:s.entry))}</b></span><span class="m">SL <b class="p">${f(s.sl)}</b></span><span class="m">T1 <b class="g">${f(s.t1)}</b></span>${s.t2?`<span class="m">T2 <b class="g">${f(s.t2)}</b></span>`:""}</div>
+ ${(o=>o&&o.contract?`<div class="lv" style="margin-top:2px"><span class="m">OPT <b class="a">${esc(o.contract)}</b></span></div>`:"")(s.option||{contract:s.contract||rec.contract})}
+ ${reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(reason)}</div>`:""}
+ <div class="btns"><a class="btn" href="${lc(s.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${lc(s.symbol,1)}" target="${ON_PUBLIC?"_self":"_blank"}">Option</a><a class="btn" href="${tv(s.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
+ }
  watch=watch||st==="WATCH"||st==="TRIGGERED_LOWR";
  const lowr=st==="TRIGGERED_LOWR",trig=st==="TRIGGERED";
  const r=q&&risk?sgn*(q.ltp-s.entry)/risk:null,gc=s.grade==="A+"?"g":"b";
@@ -345,6 +376,7 @@ function setupCard(s,watch){
 function setupRank(s){
  const g=String(s.grade||"").toUpperCase();
  const st=String(s.status||"").toUpperCase();
+ if(isClosedSetup(s)||st==="CLOSED") return 5;
  const watch=!!s.recheck_only||st==="WATCH"||st==="TRIGGERED_LOWR";
  if(g==="A+"&&!watch) return 0;
  if(g==="A"&&!watch) return 1;
@@ -356,11 +388,31 @@ function renderSetups(){
  const st=(D&&D.state)||{};const live=((D&&D.setups&&D.setups.setups)||[]);
  const seen=new Set(),list=[];
  [...live,...(st.setups||[]),...(st.watch||[])].forEach(s=>{if(!s||!s.symbol)return;if(s.recheck_only||s.kind==="reject_recheck")return;if(!seen.has(s.symbol+s.side)){seen.add(s.symbol+s.side);list.push(s)}});
- list.sort((a,b)=>{const d=setupRank(a)-setupRank(b);return d||String(b.time||"").localeCompare(String(a.time||""))});
- const liveList=list.filter(s=>setupRank(s)<=1), watchList=list.filter(s=>setupRank(s)>1);
+ list.forEach(s=>{
+  const rec=paperClosedRec(s);
+  if(!rec) return;
+  const stt=String(s.status||"").toUpperCase();
+  if(stt==="WATCH"||stt==="TRIGGERED"||stt==="TRIGGERED_LOWR"||stt==="TRIGGERED_PENDING_GRADE") return;
+  s.status="CLOSED";
+  if(s.pnl==null&&rec.pnl!=null) s.pnl=rec.pnl;
+  if(s.exit==null&&rec.exit!=null) s.exit=rec.exit;
+  if(!s.exit_time&&rec.exit_time) s.exit_time=rec.exit_time;
+  if(!s.exit_reason&&(rec.reason||rec.exit_reason)) s.exit_reason=rec.reason||rec.exit_reason;
+  if(s.fill==null&&rec.fill!=null) s.fill=rec.fill;
+  if(!s.contract&&rec.contract) s.contract=rec.contract;
+  if(s.R==null&&rec.r!=null) s.R=rec.r;
+ });
+ list.sort((a,b)=>{const d=setupRank(a)-setupRank(b);return d||String(b.time||b.exit_time||"").localeCompare(String(a.time||a.exit_time||""))});
+ const closedList=list.filter(isClosedSetup);
+ const liveList=list.filter(s=>!isClosedSetup(s)&&setupRank(s)<=1), watchList=list.filter(s=>!isClosedSetup(s)&&setupRank(s)>1);
  const nLive=liveList.length,nWatch=watchList.length;
- const sn=$("setupsN"); if(sn) sn.textContent=nLive+" live · "+nWatch+" watch";
- $("setups").innerHTML=liveList.map(s=>setupCard(s,false)).join("")||'<div class="m" style="padding:6px 0">No A/A+ setups yet — waiting for structure.</div>';
+ const sn=$("setupsN"); if(sn) sn.textContent=nLive+" live · "+nWatch+" watch · "+closedList.length+" closed";
+ let html=liveList.map(s=>setupCard(s,false)).join("")||'<div class="m" style="padding:6px 0">No open A/A+ trades.</div>';
+ if(closedList.length){
+  closedList.sort((a,b)=>String(b.exit_time||b.time||"").localeCompare(String(a.exit_time||a.time||"")));
+  html+=`<div class="iceSigSub">TRADE HISTORY · CLOSED TODAY</div>`+closedList.map(s=>setupCard(s,false)).join("");
+ }
+ $("setups").innerHTML=html;
  const wc=$("watchCards");
  if(wc) wc.innerHTML=watchList.map(s=>setupCard(s,true)).join("")||'<div class="m" style="padding:8px 0">No WATCH names right now.</div>';
  const wn=$("watchN"); if(wn) wn.textContent=nWatch+" watch";
@@ -476,7 +528,15 @@ function renderPaper(){
  const pend=(p.pending||[]).filter(x=>x&& (x.status==="waiting pullback-break"||x.note==="waiting pullback-break"));
  if(pend.length)h+=`<table style="margin-top:4px"><tr><th>WAITING</th><th>SIDE</th><th>STATUS</th><th>SL</th><th>T1</th></tr>`+pend.map(x=>`<tr><td><span class="${x.side==="LONG"?"g":"p"}">${x.side==="LONG"?"▲":"▼"}</span> ${esc(x.contract||x.symbol)}</td><td>${esc(x.side||"")}</td><td class="a">${esc(x.grade||"A")} · waiting pullback-break</td><td class="p">${f(x.spot_sl||x.sl)}</td><td class="g">${f(x.spot_t1||x.t1)}</td></tr>`).join("")+`</table>`;
 
- if(td.length)h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>LOTS</th><th>L1</th><th>L2</th><th>P&amp;L</th></tr>`+td.map(x=>{const l1=x.lot1Pnl!=null?`₹${sg(x.lot1Pnl,0)}`:"";const l2=x.lot2Pnl!=null?`₹${sg(x.lot2Pnl,0)}`:"";const note=x.note||x.close_note||"";return `<tr><td>${esc(x.mode==="option"&&x.contract?x.contract:x.symbol)}</td><td>${x.lots??1}</td><td class="${cl(x.lot1Pnl)}">${l1}</td><td class="${cl(x.lot2Pnl)}">${l2}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`+(note?`<tr><td colspan="5" class="dm" style="white-space:normal">${esc(x.reason?x.reason+" — ":"")}${esc(note)}</td></tr>`:"")}).join("")+`</table>`;
+ if(td.length){
+  h+=`<div class="iceSigSub">TRADE HISTORY · CLOSED TODAY</div>`;
+  h+=`<table style="margin-top:4px"><tr><th>CLOSED</th><th>EXIT</th><th>TIME</th><th>REASON</th><th>P&amp;L</th></tr>`+td.map(x=>{
+   const note=x.note||x.close_note||"";
+   const et=x.exit_time||"";
+   const name=esc(x.mode==="option"&&x.contract?x.contract:x.symbol);
+   return `<tr><td>${name}</td><td>${x.exit!=null?f(x.exit):"—"}</td><td class="dm">${esc(et)}</td><td class="dm" style="white-space:normal">${esc(x.reason||"")}${note?" — "+esc(note):""}</td><td class="${cl(x.pnl)}">₹${sg(x.pnl,0)} ${x.r!=null?sg(x.r)+"R":""}</td></tr>`;
+  }).join("")+`</table>`;
+ }
  $("paper").innerHTML=h;
 }
 function renderWatchLong(){
