@@ -1,0 +1,16 @@
+/* Public keyless chart page. Mobile-first. Paper/demo only. */
+.cvPage{padding:8px 10px 24px;max-width:960px;margin:0 auto}
+.cvPage .tvbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cvPage .tvbar a{color:#3DDBD9;text-decoration:none;font-size:13px;padding:8px 4px}
+.cvHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cvPx{font-size:20px;font-weight:700}
+.cvPageChart{background:#0b0e11;border:1px solid #2a313c;border-radius:8px;padding:8px;margin-top:8px}
+#cvChart{width:100%;height:280px}
+.cvTools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+#cvSym,#cvTf{background:#1e222d;color:inherit;border:1px solid #2a313c;border-radius:6px;padding:6px 8px;font:inherit;font-size:13px}
+.cvTfbtn{background:#1e222d;color:#8b95a5;border:1px solid #2a313c;border-radius:6px;padding:6px 8px;font:inherit;font-size:12px}
+.cvTfbtn.on{background:#3d8bfd;color:#fff;border-color:#3d8bfd}
+.cvNote{font-size:11px;color:#8b95a5;margin-top:8px;line-height:1.4}
+@media (min-width:640px){
+  #cvChart{height:420px}
+}

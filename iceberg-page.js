@@ -159,6 +159,7 @@ function renderChartBox(v, sym){
   }else{
     el.innerHTML=sparkSvg(bars, marks, Math.max(320,el.clientWidth||320), el.clientHeight||240);
   }
+  bindOpenChart(sym);
 }
 
 function fillSymSel(v, current){
@@ -200,6 +201,22 @@ function boot(){
     if(window.NL&&NL.onChange) NL.onChange(()=>{if(NL.status().hasData) paint()});
     const t=setInterval(()=>{if(ready()) clearInterval(t)},500);
   }
+}
+
+
+function fullChartHref(sym, extra){
+  const pub=/\/public\//.test(location.pathname);
+  const p=new URLSearchParams();
+  if(sym) p.set("symbol",sym);
+  if(extra) Object.keys(extra).forEach(k=>{if(extra[k]!=null&&extra[k]!=="") p.set(k,String(extra[k]))});
+  if(pub) return "chart-view.html?"+p.toString();
+  return "chart.html?"+p.toString();
+}
+function bindOpenChart(sym){
+  const a=$("openChart");
+  if(!a||!sym) return;
+  a.href=fullChartHref(sym);
+  a.style.display="";
 }
 
 window.iceVariantCards=function(baseHref){

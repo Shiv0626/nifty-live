@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#131722"/>
 <title>Nifty 50 Setup Dashboard · Public</title>
+<script>/* Public: ?go=chart opens the keyless public chart page, never private chart.html and never a key. */(function(){var q=new URLSearchParams(location.search);if(q.get("go")!=="chart")return;q.delete("go");location.replace("chart-view.html?"+q.toString())})()</script>
 <link rel="stylesheet" href="app.css?v=3">
 <link rel="stylesheet" href="iceberg-page.css?v=1">
 <link rel="stylesheet" href="variant-page.css?v=1">
@@ -35,7 +36,7 @@
   </aside>
   <div class="tvmain">
    <div class="panel" id="chartP">
-    <div class="lbl"><span id="chartTitle">NIFTY 50 · 5M</span><span><a class="b" id="chartLive" href="#" target="_blank">Live Chart</a> · <a class="b" id="niftyTv" target="_blank" rel="noreferrer">TradingView ↗</a></span></div>
+    <div class="lbl"><span id="chartTitle">NIFTY 50 · 5M</span><span><a class="b" id="chartLive" href="chart-view.html?symbol=NIFTY" target="_self">Live Chart</a> · <a class="b" id="niftyTv" target="_blank" rel="noreferrer">TradingView ↗</a></span></div>
     <div id="chartOhlc"></div>
     <svg id="chart"></svg>
    </div>
@@ -177,30 +178,31 @@
 <div id="brokerModal"><div class="modalbox"><div class="h" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 id="brokerModalTitle">Connect</h2><button type="button" class="btn" id="brokerModalClose">Close</button></div><div id="brokerModalBody"></div></div></div>
 <script>
 /* Public page: never probe a tunnel or host list, never put a key on a URL.
-   Chart links open the repo-root GitHub chart (../chart.html) without a key.
-   On chart.html, nl-data.js loads the public plaintext feed when no key is present. */
+   Chart links open the same-folder keyless chart-view.html (not private chart.html). */
 (function(){
  function rewrite(a){
   try{
    var raw=a.getAttribute('href')||'';
+   if(raw.indexOf('chart-view.html')>=0){ a.setAttribute('target','_self'); return; }
    if(raw.indexOf('chart.html')<0 && raw.indexOf('go=chart')<0) return;
    var u=new URL(raw, location.href);
-   var sym=u.searchParams.get('symbol')||'';
-   var q=sym?('?symbol='+encodeURIComponent(sym)):'';
-   if(u.searchParams.get('tab')==='option') q+=(q?'&':'?')+'tab=option';
-   a.href='../chart.html'+q;
-   a.setAttribute('target','_blank');
-   a.setAttribute('rel','noopener');
+   var q=new URLSearchParams();
+   ['symbol','tab','tf','entry','sl','t1','t2','level','side','src'].forEach(function(k){
+     var v=u.searchParams.get(k); if(v) q.set(k,v);
+   });
+   a.href='chart-view.html'+(q.toString()?('?'+q.toString()):'');
+   a.setAttribute('target','_self');
+   a.removeAttribute('rel');
   }catch(err){}
  }
  function fix(e){
-  var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html"],a[href*="go=chart"]');
+  var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html"],a[href*="go=chart"],a[href*="chart-view.html"]');
   if(a) rewrite(a);
  }
  ['pointerdown','touchstart','mouseover','focusin','click'].forEach(function(ev){
   document.addEventListener(ev,fix,{capture:true,passive:true});
  });
- function sweep(){document.querySelectorAll('a[href*="chart.html"],a[href*="go=chart"]').forEach(rewrite)}
+ function sweep(){document.querySelectorAll('a[href*="chart.html"],a[href*="go=chart"],a[href*="chart-view.html"]').forEach(rewrite)}
  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',sweep);
  else sweep();
  setInterval(sweep,2000);
@@ -222,6 +224,6 @@
 })();
 </script>
 <script src="nl-data.js?v=4"></script>
-<script src="iceberg-page.js?v=1"></script>
-<script src="variant-page.js?v=1"></script>
-<script src="app.js?v=3"></script></body></html>
+<script src="iceberg-page.js?v=2"></script>
+<script src="variant-page.js?v=2"></script>
+<script src="app.js?v=4"></script></body></html>

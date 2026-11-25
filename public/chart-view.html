@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#131722"/>
+<title>Public chart · paper</title>
+<link rel="stylesheet" href="app.css?v=3"/>
+<link rel="stylesheet" href="iceberg-page.css?v=1"/>
+<link rel="stylesheet" href="chart-view.css?v=1"/>
+</head>
+<body class="cvPage">
+<div id="app">
+ <div class="tvbar">
+  <a href="./" id="backDash">← Dashboard</a>
+  <span class="ttl">PUBLIC CHART</span>
+  <span class="srcb warn" id="srcBadge">● GitHub data load ho raha hai…</span>
+ </div>
+ <div id="cvPage">
+  <div class="cvHead">
+    <div id="cvPx">—</div>
+    <div class="m" id="cvSub">Public · paper/demo only</div>
+  </div>
+  <div class="cvPageChart">
+    <div class="cvTools">
+      <select id="cvSym" aria-label="Symbol"></select>
+      <button type="button" class="cvTfbtn" data-tf="1m">1m</button>
+      <button type="button" class="cvTfbtn" data-tf="3m">3m</button>
+      <button type="button" class="cvTfbtn on" data-tf="5m">5m</button>
+      <button type="button" class="cvTfbtn" data-tf="15m">15m</button>
+      <button type="button" class="cvTfbtn" data-tf="30m">30m</button>
+      <button type="button" class="cvTfbtn" data-tf="1H">1H</button>
+      <button type="button" class="cvTfbtn" data-tf="D">D</button>
+    </div>
+    <div id="cvChart"></div>
+  </div>
+  <div class="cvNote">GitHub public feed · IST · paper/demo trading only, not advice. Open / unrealised P&amp;L is not shown. This page never asks for a key.</div>
+ </div>
+</div>
+<script src="nl-data.js?v=4"></script>
+<script src="../lightweight-charts.standalone.production.js"></script>
+<script src="chart-view.js?v=1"></script>
+</body></html>

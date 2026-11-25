@@ -7,7 +7,10 @@ const f=(n,d=2)=>n==null||isNaN(n)?"—":Number(n).toLocaleString("en-IN",{minim
 const sg=(n,d=2)=>n==null?"—":(n>0?"+":"")+f(n,d);
 const cl=v=>v>0?"g":v<0?"p":"dm";
 const tv=s=>"https://www.tradingview.com/chart/?symbol="+encodeURIComponent(s==="NIFTY"?"NSE:NIFTY":"NSE:"+s.replace(/[&-]/g,"_"));
-const lc=(s,opt)=>"chart.html?k="+encodeURIComponent(K)+"&symbol="+encodeURIComponent(s)+(opt?"&tab=option":"");
+const ON_PUBLIC=/\/public\//.test(location.pathname);
+const lc=(s,opt)=>ON_PUBLIC
+  ?("chart-view.html?symbol="+encodeURIComponent(s)+(opt?"&tab=option":""))
+  :("chart.html?k="+encodeURIComponent(K)+"&symbol="+encodeURIComponent(s)+(opt?"&tab=option":""));
 const ist=()=>new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour12:false});
 let L={},D=null,lastOk=0,ltpAge=null,quoteAsOf=null;
 $("niftyTv").href=tv("NIFTY");
@@ -147,7 +150,7 @@ function icebergCard(r){
  ${armed?"":iceOptLine(r)}
  ${note?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(note)}</div>`:""}
  ${stockNewsHtml({symbol:r.symbol})}
- <div class="btns"><a class="btn" href="${iceChartUrl(r)}" target="_blank">Live Chart</a><a class="btn" href="${iceChartUrl(r,1)}" target="_blank">Option</a><a class="btn" href="${tv(r.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
+ <div class="btns"><a class="btn" href="${iceChartUrl(r)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${iceChartUrl(r,1)}" target="${ON_PUBLIC?"_self":"_blank"}">Option</a><a class="btn" href="${tv(r.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
 }
 function iceSkipReason(r){
  const raw=String((r&&r.skip_reason)||"");
@@ -329,7 +332,7 @@ function setupCard(s,watch){
  ${(o=>o&&o.contract?`<div class="lv" style="margin-top:2px"><span class="m">OPT <b class="a">${esc(o.contract)}</b></span><span class="m">E <b class="dm">${f(o.entry)}</b></span><span class="m">SL <b class="p">${f(o.sl)}</b></span><span class="m">T1 <b class="g">${f(o.t1)}</b></span>${o.t2?`<span class="m">T2 <b class="g">${f(o.t2)}</b></span>`:""}</div>`:"")(s.option)}
  ${s.triggerText||s.note||s.why?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(s.triggerText||s.why||s.note)}</div>`:""}
  ${stockNewsHtml(s)}
- <div class="btns"><a class="btn" href="${lc(s.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${lc(s.symbol,1)}" target="_blank">Option</a><a class="btn" href="${tv(s.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
+ <div class="btns"><a class="btn" href="${lc(s.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${lc(s.symbol,1)}" target="${ON_PUBLIC?"_self":"_blank"}">Option</a><a class="btn" href="${tv(s.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`;
 }
 function setupRank(s){
  const g=String(s.grade||"").toUpperCase();
@@ -451,7 +454,7 @@ function renderBtst(){
  <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
  ${x.option?`<div class="lv" style="grid-template-columns:1fr"><span class="m">OPT <b class="a">${esc(x.option)}</b> ${esc(x.prem||"")}${x.lot?" · lot "+esc(x.lot):""}${x.risk_1lot?" · risk ₹"+esc(x.risk_1lot)+"/lot":""}</span></div>`:""}
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
- <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
+ <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
@@ -565,7 +568,7 @@ function renderChart(bars){
  const svg=$("chart"); if(!svg) return;
  const q=L[chartSym]||L[chartSym==="NIFTY"?"NIFTY":chartSym], W=svg.clientWidth||600,H=svg.clientHeight||220;
  const ttl=$("chartTitle"); if(ttl) ttl.textContent=(chartSym||"NIFTY")+" · "+chartTf.toUpperCase();
- const clink=$("chartLive"); if(clink) clink.href=lc(chartSym==="NIFTY"?"NIFTY":chartSym);
+ const clink=$("chartLive"); if(clink){ clink.href=lc(chartSym==="NIFTY"?"NIFTY":chartSym); if(ON_PUBLIC) clink.target="_self"; }
  const tvEl=$("niftyTv"); if(tvEl) tvEl.href=tv(chartSym||"NIFTY");
  if(!bars||!bars.length){svg.innerHTML="";return}
  let b=bars;
@@ -646,7 +649,7 @@ function watchUniverse(){
  Object.keys(L||{}).forEach(s=>{if(s&&!/\d(CE|PE)$/.test(s))set.add(s)});
  return set;
 }
-function chartHref(sym){ return "?go=chart&symbol="+encodeURIComponent(sym); }
+function chartHref(sym){ return ON_PUBLIC?("chart-view.html?symbol="+encodeURIComponent(sym)):("?go=chart&symbol="+encodeURIComponent(sym)); }
 function quotesAreLastSession(){
  if(ltpAge!=null&&ltpAge>6*3600) return true;
  const as=String(quoteAsOf||"");
@@ -729,7 +732,7 @@ function renderBtstLocal(){
  box.innerHTML=p.length?p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
  <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
- <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="_blank">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join(""):'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
+ <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join(""):'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
 }
 function iceHoldings(sig){
  const rows=((sig&&sig.rows)||[]).filter(r=>!r.backfill && /^(OPEN|T1_DONE|CLOSED)$/.test(String(r.status||"")));
@@ -906,6 +909,7 @@ function bindUi(){
  if(wl) wl.addEventListener("click",e=>{
   const row=e.target.closest("[data-sym]"); if(!row) return;
   if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+  if(ON_PUBLIC) return; /* public: follow chart-view.html so the full chart opens */
   e.preventDefault();
   setChartSym(row.getAttribute("data-sym"));
  });
