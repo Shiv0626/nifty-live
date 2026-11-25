@@ -15,6 +15,10 @@ function px(n,d){if(n==null||isNaN(n))return "—";return Number(n).toLocaleStri
 function arrow(n){return n==null||n===0?"":(n>0?"▲":"▼")}
 function cls(n){return n==null||n===0?"oc-0":(n>0?"oc-up":"oc-dn")}
 function chg(n){if(n==null)return '<span class="oc-0">—</span>';return '<span class="'+cls(n)+'">'+arrow(n)+" "+sfmt(n)+"</span>"}
+/* % change computed in the browser from OI and its change (base = OI before the change); no extra feed fields */
+function pct(ch,cur){if(ch==null||cur==null)return null;var b=cur-ch;if(!(b>0))return null;return ch/b*100}
+function pfmt(p){if(p==null||isNaN(p))return "";var a=Math.abs(p);return (p>0?"+":p<0?"−":"")+(a>=100?a.toFixed(0):a.toFixed(1))+"%"}
+function pspan(p,extra){if(p==null||isNaN(p))return "";return '<span class="oc-pct '+(p>0?"oc-up":p<0?"oc-dn":"oc-0")+(extra?" "+extra:"")+'">'+pfmt(p)+'</span>'}
 var BU={"Long build-up":["LB","oc-lb"],"Short build-up":["SB","oc-sb"],"Short covering":["SC","oc-sc"],"Long unwinding":["LU","oc-lu"]};
 function bu(b){if(!b||!BU[b])return '<span class="oc-0">—</span>';return '<span class="oc-bu '+BU[b][1]+'" title="'+esc(b)+'"><b class="oc-bus">'+BU[b][0]+'</b><span class="oc-bul">'+esc(b)+'</span></span>'}
 function ist(ts){if(!ts)return "—";var d=new Date(ts);if(isNaN(d))return esc(ts);return d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Kolkata"})+" IST"}
@@ -24,7 +28,7 @@ function dlabel(iso){if(!iso)return "";var d=new Date(iso+"T00:00:00+05:30");ret
 function butterfly(ex,idx,W,mode){
  var rows=(ex.rows||[]).slice().sort(function(a,b){return b.k-a.k});
  if(!rows.length)return '<div class="oc-empty">Strikes ka data nahi</div>';
- var narrow=W<560,mid=narrow?60:84,lab=narrow?84:150,rh=narrow?26:28,top=30,H=top+rows.length*rh+26;
+ var narrow=W<560,mid=narrow?60:84,lab=narrow?96:176,rh=narrow?26:28,top=30,H=top+rows.length*rh+26;
  var half=(W-mid)/2,barW=Math.max(30,half-lab-10);
  function val(l){if(!l)return null;if(mode==="d15")return l.d15;if(mode==="doi")return l.doi;return l.oi}
  var mx=1;rows.forEach(function(r){["ce","pe"].forEach(function(s){var l=r[s];if(!l)return;
@@ -33,7 +37,7 @@ function butterfly(ex,idx,W,mode){
  var o=['<svg class="oc-svg" viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMin meet">',
   '<defs><pattern id="ocHatchR" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="'+RED+'" stroke-width="2"/></pattern>',
   '<pattern id="ocHatchG" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="'+GRN+'" stroke-width="2"/></pattern></defs>'];
- var ttl=mode==="oi"?(narrow?"bright = aaj add · dhaariyan = aaj kam":"OI (bright = aaj add hua · dhaariyan = aaj kam hua)"):mode==="doi"?"OI change vs pichhla din":"OI change · last 15 min";
+ var ttl=mode==="oi"?(narrow?"OI + aaj ka % · bright = add · dhaariyan = kam":"OI + aaj ka % change (bright = aaj add hua · dhaariyan = aaj kam hua)"):mode==="doi"?"OI change + % vs pichhla din":"OI change + % · last 15 min";
  o.push('<text x="2" y="16" class="oc-t" fill="'+RED+'">CALL (CE)</text>');
  o.push('<text x="'+(W-2)+'" y="16" text-anchor="end" class="oc-t" fill="'+GRN+'">PUT (PE)</text>');
  o.push('<text x="'+(W/2)+'" y="16" text-anchor="middle" class="oc-ts">STRIKE</text>');
@@ -47,20 +51,21 @@ function butterfly(ex,idx,W,mode){
    var l=r[s];if(!l)return;var left=s==="ce",C=left?RED:GRN,CL=left?RED_L:GRN_L,H2=left?"url(#ocHatchR)":"url(#ocHatchG)";
    var x0=left?half:half+mid,bh=rh-8,by=y+4,txt="",tc="#D1D4DC";
    function bar(a,b,fill,op){var w=Math.abs(b-a);if(w<.5)return;var xa=left?x0-6-Math.max(a,b):x0+6+Math.min(a,b);o.push('<rect x="'+xa.toFixed(1)+'" y="'+by+'" width="'+w.toFixed(1)+'" height="'+bh+'" fill="'+fill+'"'+(op?' opacity="'+op+'"':'')+' rx="2"/>')}
-   var end=0;
+   var end=0,pv=null;
    if(mode==="oi"){
     var cur=l.oi||0,d=l.doi,prev=d==null?cur:cur-d;
     if(d!=null&&d>0){bar(0,sc(prev),CL);bar(sc(prev),sc(cur),C);end=sc(cur)}
     else if(d!=null&&d<0){bar(0,sc(cur),CL);bar(sc(cur),sc(prev),H2);o.push('<rect x="'+(left?x0-6-sc(prev):x0+6+sc(cur)).toFixed(1)+'" y="'+by+'" width="'+(sc(prev)-sc(cur)).toFixed(1)+'" height="'+bh+'" fill="none" stroke="'+C+'" stroke-width="1" stroke-dasharray="3 2" rx="2"/>');end=sc(prev)}
     else{bar(0,sc(cur),CL);end=sc(cur)}
-    txt=fmt(cur)+(d?((narrow?"":" ")+arrow(d)+fmt(Math.abs(d))):"");tc=d>0?C:d<0?"#9CA3AF":"#D1D4DC";
+    txt=fmt(cur)+(d&&!narrow?(" "+arrow(d)+fmt(Math.abs(d))):"");tc="#E5E7EB";pv=pct(d,cur);
    }else{
     var v=val(l);if(v==null){txt="—"}else{if(v>=0)bar(0,sc(v),C);else{bar(0,sc(-v),H2);o.push('<rect x="'+(left?x0-6-sc(-v):x0+6).toFixed(1)+'" y="'+by+'" width="'+sc(-v).toFixed(1)+'" height="'+bh+'" fill="none" stroke="'+C+'" stroke-width="1" stroke-dasharray="3 2" rx="2"/>')}
-     end=sc(Math.abs(v));txt=arrow(v)+" "+sfmt(v);tc=v>0?C:v<0?"#9CA3AF":"#D1D4DC"}
+     end=sc(Math.abs(v));txt=arrow(v)+(narrow?"":" ")+sfmt(v);tc=v>0?"#00C98B":v<0?"#FF4D6D":"#D1D4DC";pv=pct(v,l.oi)}
    }
    /* labels sit at the outer edge (CE left, PE right), bars grow from the strike column */
    var tx=left?2:W-2;
-   o.push('<text x="'+tx+'" y="'+(cy+4)+'" text-anchor="'+(left?"start":"end")+'" class="oc-v" fill="'+tc+'">'+esc(txt)+'</text>');
+   var pc=pv==null?"":'<tspan dx="4" class="oc-vp" fill="'+(pv>0?"#00C98B":pv<0?"#FF4D6D":"#9CA3AF")+'">'+pfmt(pv)+'</tspan>';
+   o.push('<text x="'+tx+'" y="'+(cy+4)+'" text-anchor="'+(left?"start":"end")+'" class="oc-v"><tspan fill="'+tc+'">'+esc(txt)+'</tspan>'+pc+'</text>');
   });
  });
  // spot line between strikes
@@ -127,18 +132,18 @@ function table(ex){
   h.push('<tr class="'+(r.atm?"oc-atm":"")+'">',
    '<td class="oc-x">'+bu(c.bu)+'</td>',
    '<td class="oc-x'+(itmC?" oc-itm":"")+'">'+px(c.ltp)+'<div class="'+cls(c.lc)+' oc-sm">'+(c.lc==null?"":arrow(c.lc)+" "+px(Math.abs(c.lc)))+'</div></td>',
-   '<td class="oc-x">'+chg(c.d15)+'</td><td class="oc-x">'+chg(c.d5)+'</td>',
-   '<td>'+chg(c.doi)+(c.doip!=null?'<div class="oc-sm oc-0 oc-pc">'+(c.doip>0?"+":"")+c.doip+'%</div>':"")+'<div class="oc-sm oc-m15">15m '+chg(c.d15)+'</div></td>',
+   '<td class="oc-x">'+chg(c.d15)+'<div class="oc-sm">'+pspan(pct(c.d15,c.oi))+'</div></td><td class="oc-x">'+chg(c.d5)+'<div class="oc-sm">'+pspan(pct(c.d5,c.oi))+'</div></td>',
+   '<td>'+chg(c.doi)+'<div class="oc-sm">'+pspan(pct(c.doi,c.oi))+'</div><div class="oc-sm oc-m15">15m '+(pct(c.d15,c.oi)==null?'<span class="oc-0">—</span>':pspan(pct(c.d15,c.oi)))+'</div></td>',
    '<td class="oc-oi'+(r.k===ex.res?" oc-maxc":"")+(itmC?" oc-itm":"")+'">'+fmt(c.oi)+'</td>',
    '<td class="oc-st">'+px(r.k,0)+(r.atm?'<div class="oc-sm oc-atml">ATM</div>':"")+'</td>',
    '<td class="oc-oi'+(r.k===ex.sup?" oc-maxp":"")+(itmP?" oc-itm":"")+'">'+fmt(p.oi)+'</td>',
-   '<td>'+chg(p.doi)+(p.doip!=null?'<div class="oc-sm oc-0 oc-pc">'+(p.doip>0?"+":"")+p.doip+'%</div>':"")+'<div class="oc-sm oc-m15">15m '+chg(p.d15)+'</div></td>',
-   '<td class="oc-x">'+chg(p.d5)+'</td><td class="oc-x">'+chg(p.d15)+'</td>',
+   '<td>'+chg(p.doi)+'<div class="oc-sm">'+pspan(pct(p.doi,p.oi))+'</div><div class="oc-sm oc-m15">15m '+(pct(p.d15,p.oi)==null?'<span class="oc-0">—</span>':pspan(pct(p.d15,p.oi)))+'</div></td>',
+   '<td class="oc-x">'+chg(p.d5)+'<div class="oc-sm">'+pspan(pct(p.d5,p.oi))+'</div></td><td class="oc-x">'+chg(p.d15)+'<div class="oc-sm">'+pspan(pct(p.d15,p.oi))+'</div></td>',
    '<td class="oc-x'+(itmP?" oc-itm":"")+'">'+px(p.ltp)+'<div class="'+cls(p.lc)+' oc-sm">'+(p.lc==null?"":arrow(p.lc)+" "+px(Math.abs(p.lc)))+'</div></td>',
    '<td class="oc-x">'+bu(p.bu)+'</td></tr>');
  });
  var t=ex.tot||{};
- h.push('</tbody><tfoot><tr><td class="oc-x"></td><td class="oc-x"></td><td class="oc-x">'+chg(t.ce_d15)+'</td><td class="oc-x">'+chg(t.ce_d5)+'</td><td>'+chg(t.ce_doi)+'</td><td class="oc-oi">'+fmt(t.ce_oi)+'</td><td class="oc-st">TOTAL</td><td class="oc-oi">'+fmt(t.pe_oi)+'</td><td>'+chg(t.pe_doi)+'</td><td class="oc-x">'+chg(t.pe_d5)+'</td><td class="oc-x">'+chg(t.pe_d15)+'</td><td class="oc-x"></td><td class="oc-x"></td></tr></tfoot></table></div>');
+ h.push('</tbody><tfoot><tr><td class="oc-x"></td><td class="oc-x"></td><td class="oc-x">'+chg(t.ce_d15)+'<div class="oc-sm">'+pspan(pct(t.ce_d15,t.ce_oi))+'</div></td><td class="oc-x">'+chg(t.ce_d5)+'<div class="oc-sm">'+pspan(pct(t.ce_d5,t.ce_oi))+'</div></td><td>'+chg(t.ce_doi)+'<div class="oc-sm">'+pspan(pct(t.ce_doi,t.ce_oi))+'</div><div class="oc-sm oc-m15">15m '+pspan(pct(t.ce_d15,t.ce_oi))+'</div></td><td class="oc-oi">'+fmt(t.ce_oi)+'</td><td class="oc-st">TOTAL</td><td class="oc-oi">'+fmt(t.pe_oi)+'</td><td>'+chg(t.pe_doi)+'<div class="oc-sm">'+pspan(pct(t.pe_doi,t.pe_oi))+'</div><div class="oc-sm oc-m15">15m '+pspan(pct(t.pe_d15,t.pe_oi))+'</div></td><td class="oc-x">'+chg(t.pe_d5)+'<div class="oc-sm">'+pspan(pct(t.pe_d5,t.pe_oi))+'</div></td><td class="oc-x">'+chg(t.pe_d15)+'<div class="oc-sm">'+pspan(pct(t.pe_d15,t.pe_oi))+'</div></td><td class="oc-x"></td><td class="oc-x"></td></tr></tfoot></table></div>');
  return h.join("");
 }
 
@@ -154,14 +159,15 @@ function render(){
   h.push('<div class="oc-bar"><div class="oc-seg">'+names.map(function(n){return '<button type="button" data-oi-idx="'+n+'" class="'+(n===ST.idx?"on":"")+'">'+n+'</button>'}).join("")+'</div>');
   h.push('<div class="oc-seg">'+exs.map(function(e,i){return '<button type="button" data-oi-exp="'+i+'" class="'+(i===ST.exp?"on":"")+'">'+esc(dlabel(e.expiry))+(i===0?" · near":"")+'</button>'}).join("")+'</div>');
   h.push('<div class="oc-meta">'+mk+' · '+ist(oc.updated)+'</div></div>');
+  var addp=function(side,k){var r=(ex.rows||[]).filter(function(x){return x.k===k})[0],l=r&&r[side];if(!l)return "";var dd=pct(l.doi,l.oi);return dd==null?"":'(+'+fmt(l.doi).replace(/^[+]/,"")+' · '+pspan(dd)+')'};
   var t=ex.tot||{},tilt=(t.pe_doi!=null&&t.ce_doi!=null)?(t.pe_doi>t.ce_doi?'<span class="oc-up">PE writing zyada</span>':'<span class="oc-dn">CE writing zyada</span>'):"—";
   h.push('<div class="oc-cards">',
    card(esc(ST.idx)+" SPOT",px(idx.spot),idx.spot_chg==null?"":'<span class="'+cls(idx.spot_chg)+'">'+arrow(idx.spot_chg)+" "+px(Math.abs(idx.spot_chg))+(idx.spot_pc?" ("+(idx.spot_chg/idx.spot_pc*100).toFixed(2)+"%)":"")+'</span>'),
    card("PCR (OI)",ex.pcr==null?"—":ex.pcr.toFixed(2),"Δ OI PCR: "+(ex.pcr_chg==null?"—":ex.pcr_chg.toFixed(2)),ex.pcr>=1?"oc-up":"oc-dn"),
-   card("RESISTANCE · max CE OI",px(ex.res,0),"sabse zyada CE add: "+px(ex.res_add,0),"oc-dn"),
-   card("SUPPORT · max PE OI",px(ex.sup,0),"sabse zyada PE add: "+px(ex.sup_add,0),"oc-up"),
-   card("CE OI Δ day",chg(t.ce_doi),"15m: "+chg(t.ce_d15)),
-   card("PE OI Δ day",chg(t.pe_doi),"15m: "+chg(t.pe_d15)),
+   card("RESISTANCE · max CE OI",px(ex.res,0),"sabse zyada CE add: "+px(ex.res_add,0)+" "+addp("ce",ex.res_add),"oc-dn"),
+   card("SUPPORT · max PE OI",px(ex.sup,0),"sabse zyada PE add: "+px(ex.sup_add,0)+" "+addp("pe",ex.sup_add),"oc-up"),
+   card("CE OI Δ day",chg(t.ce_doi)+" "+pspan(pct(t.ce_doi,t.ce_oi),"oc-pbig"),"15m: "+chg(t.ce_d15)+" "+pspan(pct(t.ce_d15,t.ce_oi))),
+   card("PE OI Δ day",chg(t.pe_doi)+" "+pspan(pct(t.pe_doi,t.pe_oi),"oc-pbig"),"15m: "+chg(t.pe_d15)+" "+pspan(pct(t.pe_d15,t.pe_oi))),
    card("OI TILT",tilt,"ATM ±10 strikes · ATM "+px(idx.atm,0),"","oc-wide"),
   '</div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>STRIKE-WISE OI · '+esc(ST.idx)+' '+esc(dlabel(ex.expiry))+'</span><span class="oc-seg oc-mode">',

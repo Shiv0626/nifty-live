@@ -52,7 +52,7 @@
  .oc-cv{font-size:17px}
  .oc-card.oc-wide{grid-column:1/-1}
  .oc-bul{display:none}.oc-bus{display:inline}
- .oc-m15{display:block;margin-top:2px}.oc-y{display:table-cell}.oc-pc{display:none}
+ .oc-m15{display:block;margin-top:2px}.oc-y{display:table-cell}
  .oc-tbl td.oc-st,.oc-tbl th.oc-st{font-size:12px}
 }
 /* standalone oi.html */
@@ -62,3 +62,13 @@ body.oc-page{margin:0;background:#131722;color:#D1D4DC;overflow:auto;height:auto
 .oc-top a{color:#4CC9F0;font-size:12px}
 .oc-main{padding:8px;max-width:1120px;margin:0 auto}
 #oiP .oc-wrap{padding-bottom:12px}
+
+/* 25 Nov: % change (green up, red down) */
+.oc-pct{font-weight:800;font-family:var(--mono,monospace)}
+.oc-tbl .oc-sm .oc-pct{font-size:11px}
+.oc-pbig{font-size:14px;margin-left:2px}
+.oc-vp{font-size:12px;font-weight:800}
+@media (max-width:640px){.oc-tbl .oc-sm .oc-pct{font-size:11px}.oc-pbig{font-size:13px}.oc-vp{font-size:11px}.oc-tbl td{padding:4px 3px}}
+.oc-cards{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.oc-cv{white-space:normal;overflow-wrap:anywhere}
+.oc-cv .oc-pbig{display:inline-block}
