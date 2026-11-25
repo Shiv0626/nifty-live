@@ -116,7 +116,7 @@ function daychart(idx,W){
  o.push('</svg>');return o.join("");
 }
 
-function card(k,v,sub,c){return '<div class="oc-card"><div class="oc-ck">'+k+'</div><div class="oc-cv '+(c||"")+'">'+v+'</div>'+(sub?'<div class="oc-cs">'+sub+'</div>':"")+'</div>'}
+function card(k,v,sub,c,x){return '<div class="oc-card'+(x?" "+x:"")+'"><div class="oc-ck">'+k+'</div><div class="oc-cv '+(c||"")+'">'+v+'</div>'+(sub?'<div class="oc-cs">'+sub+'</div>':"")+'</div>'}
 
 function table(ex){
  var rows=(ex.rows||[]).slice().sort(function(a,b){return a.k-b.k});
@@ -162,11 +162,11 @@ function render(){
    card("SUPPORT · max PE OI",px(ex.sup,0),"sabse zyada PE add: "+px(ex.sup_add,0),"oc-up"),
    card("CE OI Δ day",chg(t.ce_doi),"15m: "+chg(t.ce_d15)),
    card("PE OI Δ day",chg(t.pe_doi),"15m: "+chg(t.pe_d15)),
-   card("OI TILT",tilt,"ATM ±10 strikes · ATM "+px(idx.atm,0)),
+   card("OI TILT",tilt,"ATM ±10 strikes · ATM "+px(idx.atm,0),"","oc-wide"),
   '</div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>STRIKE-WISE OI · '+esc(ST.idx)+' '+esc(dlabel(ex.expiry))+'</span><span class="oc-seg oc-mode">',
    [["oi","OI"],["doi","Δ Day"],["d15","Δ 15m"]].map(function(m){return '<button type="button" data-oi-mode="'+m[0]+'" class="'+(ST.mode===m[0]?"on":"")+'">'+m[1]+'</button>'}).join(""),'</span></div>',
-   butterfly(ex,idx,W-18,ST.mode),
+   butterfly(ex,idx,Math.min(W-18,780),ST.mode),
    '<div class="oc-leg"><span><i style="background:'+RED+'"></i>CE OI badha</span><span><i style="background:'+GRN+'"></i>PE OI badha</span><span><i class="oc-hatch"></i>OI ghata (dhaariyan)</span><span><i style="background:#2962FF;opacity:.5"></i>ATM</span><span><i style="background:'+AMB+'"></i>Spot</span><span><i class="oc-box r"></i>Resistance</span><span><i class="oc-box g"></i>Support</span></div></div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>DIN BHAR KA OI · '+esc(ST.idx)+' '+esc(dlabel(idx.series_expiry))+' (ATM ±10, pichhle din se change)</span></div>',daychart(idx,W-18),'</div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>OPTION CHAIN · OI ▲ badh raha / ▼ ghat raha</span><span class="oc-0">lot '+esc(ex.lot||"—")+'</span></div>',table(ex),

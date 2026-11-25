@@ -15,7 +15,7 @@
 .oc-cs{font-size:11px;color:#9CA3AF;margin-top:2px;font-family:var(--mono,monospace)}
 .oc-panel{background:#1e222d;border:1px solid #2a2e39;border-radius:8px;padding:8px 9px;min-width:0}
 .oc-ph{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;color:#9CA3AF;font-size:11px;letter-spacing:.1em;font-weight:700;margin-bottom:6px}
-.oc-svg{display:block;max-width:100%}
+.oc-svg{display:block;max-width:100%;margin:0 auto}
 .oc-svg text{font-family:var(--mono,ui-monospace,monospace)}
 .oc-t{font-size:13px;font-weight:800}.oc-ts{font-size:11px;fill:#6B7280;font-weight:700;letter-spacing:.06em}
 .oc-k{font-size:13px;fill:#D1D4DC;font-weight:700}.oc-katm{fill:#fff;font-weight:900}
@@ -50,6 +50,7 @@
  .oc-tbl{font-size:12px}.oc-tbl td,.oc-tbl th{padding:4px 4px}
  .oc-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
  .oc-cv{font-size:17px}
+ .oc-card.oc-wide{grid-column:1/-1}
  .oc-bul{display:none}.oc-bus{display:inline}
  .oc-m15{display:block;margin-top:2px}.oc-y{display:table-cell}.oc-pc{display:none}
  .oc-tbl td.oc-st,.oc-tbl th.oc-st{font-size:12px}
