@@ -6,7 +6,7 @@
 <script>/* 25 Nov: GH chart.html is the default when tunnels fail health. Probe only last-good + primary host (~1s), never the full stale hosts list. */(function(){var q=new URLSearchParams(location.search);if(q.get('go')!=='chart')return;q.delete('go');var fb=function(){location.replace('chart.html?'+q.toString())};var k=q.get('k');if(!k){try{var s=localStorage.getItem('nl_k');if(s&&/^[0-9a-f]{16,64}$/.test(s)){q.set('k',s);k=s}}catch(e){}}if(!k){q.delete('k');location.replace('public/chart-view.html?'+q.toString());return}var done=false,t=setTimeout(function(){if(!done){done=true;fb()}},1500);function go(h){if(done)return;done=true;clearTimeout(t);try{localStorage.setItem('nl_host',h)}catch(e){}location.replace(h+(q.get('tab')==='option'?'/?':'/pro?')+q.toString())}function ok(h){var c=new AbortController();setTimeout(function(){c.abort()},1000);return fetch(h+'/api/audit?k='+encodeURIComponent(k),{cache:'no-store',signal:c.signal}).then(function(r){return r.ok}).catch(function(){return false})}var l=[];function add(h){if(typeof h==='string'&&/^https:[/][/][a-z0-9.-]+$/.test(h)&&l.indexOf(h)<0)l.push(h)}try{add(localStorage.getItem('nl_host'))}catch(e){}fetch('host.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {}}).then(function(j){j=j||{};if(j.prefer_github){if(!done){done=true;clearTimeout(t);fb()}return}add(j.host);if(!l.length){if(!done){done=true;clearTimeout(t);fb()}return}var n=l.length;l.forEach(function(h){ok(h).then(function(g){if(g)go(h);else if(--n===0&&!done){done=true;clearTimeout(t);fb()}})})})})()</script>
 <title>Nifty 50 Setup Dashboard · Live</title>
 <link rel="stylesheet" href="app.css?v=3">
-<link rel="stylesheet" href="oi-chain.css?v=3">
+<link rel="stylesheet" href="oi-chain.css?v=4">
 <link rel="stylesheet" href="iceberg-page.css?v=1">
 <link rel="stylesheet" href="variant-page.css?v=1">
 </head><body>
@@ -117,7 +117,7 @@
      <div class="scroll" id="btst"></div>
     </div>
     <div class="tabpane" data-tab="oi" id="oiP">
-     <div class="lbl"><span>OI · NIFTY + SENSEX · strike-wise (index options only)</span><span><a class="b" href="oi.html" target="_self">Full screen ↗</a></span></div>
+     <div class="lbl"><span>OI · NIFTY + SENSEX + GOLDM (MCX) · strike-wise</span><span><a class="b" href="oi.html" target="_self">Full screen ↗</a></span></div>
      <div class="oc-wrap" data-oichain></div>
     </div>
     <div class="tabpane panel" data-tab="heat" id="heatP">
@@ -217,4 +217,4 @@
 <script src="iceberg-page.js?v=3"></script>
 <script src="variant-page.js?v=3"></script>
 <script src="app.js?v=6"></script>
-<script src="oi-chain.js?v=3"></script></body></html>
+<script src="oi-chain.js?v=4"></script></body></html>

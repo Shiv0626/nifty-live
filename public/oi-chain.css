@@ -72,3 +72,21 @@ body.oc-page{margin:0;background:#131722;color:#D1D4DC;overflow:auto;height:auto
 .oc-cards{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 .oc-cv{white-space:normal;overflow-wrap:anywhere}
 .oc-cv .oc-pbig{display:inline-block}
+
+/* 25 Nov: GOLDM (MCX) */
+.oc-units{font-size:11px;color:#9CA3AF;font-family:var(--mono,monospace);line-height:1.4}
+.oc-seg button small{font-size:9px;opacity:.75;margin-left:2px}
+
+/* 25 Nov: OI profile (candles + strike OI bars, tap popup) */
+.oc-prof{position:relative}
+.oc-profsvg .oc-hit{cursor:pointer}
+.oc-axatm{fill:#fff;font-weight:800}
+.oc-sw{display:inline-block;width:10px;height:8px;border-radius:2px;vertical-align:0}.oc-sw.r{background:#FF4D6D}.oc-sw.g{background:#00C98B}
+.oc-pop{display:none;position:absolute;z-index:5;min-width:200px;max-width:260px;background:#0e1116;border:1px solid #3a4152;border-radius:10px;padding:8px 10px;box-shadow:0 8px 24px #000a;font-family:var(--mono,monospace)}
+.oc-poph{font-size:13px;font-weight:800;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.oc-popx{margin-left:auto;background:transparent;border:0;color:#9CA3AF;font-size:20px;line-height:1;cursor:pointer;min-width:28px;min-height:28px}
+.oc-popl{display:flex;align-items:baseline;gap:6px;font-size:14px;margin-top:4px}
+.oc-popl span:first-child{color:#9CA3AF;min-width:58px;font-size:12px}
+.oc-popl b{color:#fff}
+.oc-popl .oc-pct{font-size:14px}
+.oc-pops{font-size:11px;color:#9CA3AF;margin-left:64px}

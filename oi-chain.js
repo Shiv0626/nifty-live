@@ -1,4 +1,4 @@
-/* oi-chain.js — strike-wise OI view for NIFTY + SENSEX index options (data only, paper/demo).
+/* oi-chain.js — strike-wise OI view for NIFTY + SENSEX index options + GOLDM (MCX gold mini options on futures) (data only, paper/demo).
    Reads NL.bundle.oi_chain (private sealed feed or keyless public feed; same shape).
    Renders into every element with [data-oichain]. Plain SVG, no library. Never links chart.html. */
 (function(){
@@ -19,6 +19,7 @@ function chg(n){if(n==null)return '<span class="oc-0">—</span>';return '<span 
 function pct(ch,cur){if(ch==null||cur==null)return null;var b=cur-ch;if(!(b>0))return null;return ch/b*100}
 function pfmt(p){if(p==null||isNaN(p))return "";var a=Math.abs(p);return (p>0?"+":p<0?"−":"")+(a>=100?a.toFixed(0):a.toFixed(1))+"%"}
 function pspan(p,extra){if(p==null||isNaN(p))return "";return '<span class="oc-pct '+(p>0?"oc-up":p<0?"oc-dn":"oc-0")+(extra?" "+extra:"")+'">'+pfmt(p)+'</span>'}
+function buildupJs(dl,doi){if(dl==null||doi==null||!dl||!doi)return null;return dl>0?(doi>0?"Long build-up":"Short covering"):(doi>0?"Short build-up":"Long unwinding")}
 var BU={"Long build-up":["LB","oc-lb"],"Short build-up":["SB","oc-sb"],"Short covering":["SC","oc-sc"],"Long unwinding":["LU","oc-lu"]};
 function bu(b){if(!b||!BU[b])return '<span class="oc-0">—</span>';return '<span class="oc-bu '+BU[b][1]+'" title="'+esc(b)+'"><b class="oc-bus">'+BU[b][0]+'</b><span class="oc-bul">'+esc(b)+'</span></span>'}
 function ist(ts){if(!ts)return "—";var d=new Date(ts);if(isNaN(d))return esc(ts);return d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Kolkata"})+" IST"}
@@ -69,7 +70,7 @@ function butterfly(ex,idx,W,mode){
   });
  });
  // spot line between strikes
- var sp=idx.spot;if(sp!=null&&rows.length>1){
+ var sp=ex.spot!=null?ex.spot:idx.spot;if(sp!=null&&rows.length>1){
   var hi=rows[0].k,lo=rows[rows.length-1].k;
   if(sp<=hi&&sp>=lo){var step=(hi-lo)/(rows.length-1),f=(hi-sp)/step,yy=top+f*rh+rh/2,yb=top+Math.round(f+.5)*rh;
    o.push('<line x1="'+(half-6-barW)+'" x2="'+(half+mid+6+barW)+'" y1="'+yy.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="'+AMB+'" stroke-width="1.6" stroke-dasharray="6 4"/>');
@@ -87,12 +88,13 @@ function daychart(idx,W){
  if(S.length<2)return '<div class="oc-empty">Din ka OI chart market khulne ke kuch minute baad banega (har 2 min point).</div>';
  var narrow=W<560,L=narrow?44:56,R=narrow?40:50,T=22,H1=narrow?110:130,G=26,H2=narrow?150:180,B=24,H=T+H1+G+H2+B,iw=W-L-R;
  function mins(t){var a=t.split(":");return +a[0]*60+(+a[1])}
- var t0=555,t1=Math.max(930,mins(S[S.length-1].t));
+ var ss=idx.sess_start||"09:15",se=idx.sess_end||"15:30",t0=mins(ss),t1=Math.max(mins(se),mins(S[S.length-1].t));
+ var ticks=[ss];(function(){var span=t1-t0,stepH=span>600?3:1;for(var m=Math.ceil((t0+30)/60)*60;m<t1-20;m+=stepH*60){var hh=Math.floor(m/60);ticks.push((hh<10?"0":"")+hh+":00")}ticks.push(se)})();
  var X=function(t){return L+(mins(t)-t0)/(t1-t0)*iw};
  var o=['<svg class="oc-svg" viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMin meet">'];
  // spot panel
  var sp=S.filter(function(p){return p.spot!=null});
- o.push('<text x="'+L+'" y="14" class="oc-t" fill="'+BLU+'">'+esc(idx._name||"")+' spot</text>');
+ o.push('<text x="'+L+'" y="14" class="oc-t" fill="'+BLU+'">'+esc(idx._name||"")+(idx.exch==="MCX"?' FUT (underlying)':' spot')+'</text>');
  if(sp.length>1){var a=Math.min.apply(null,sp.map(function(p){return p.spot})),b=Math.max.apply(null,sp.map(function(p){return p.spot}));if(b-a<1){a-=1;b+=1}
   var pad=(b-a)*.08;a-=pad;b+=pad;var Y=function(v){return T+H1-(v-a)/(b-a)*H1};
   [a+pad,b-pad].forEach(function(v){o.push('<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#2a2e39"/><text x="'+(L-4)+'" y="'+(Y(v)+4)+'" text-anchor="end" class="oc-ax">'+px(v,0)+'</text>')});
@@ -117,10 +119,67 @@ function daychart(idx,W){
  var last=S[S.length-1];
  [[last.ce_doi,RED],[last.pe_doi,GRN]].forEach(function(z){o.push('<circle cx="'+X(last.t)+'" cy="'+Y2(z[0]||0)+'" r="3.5" fill="'+z[1]+'"/>')});
  // x axis
- ["09:15","10:30","11:30","12:30","13:30","14:30","15:30"].forEach(function(t){var x=X(t);o.push('<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(y0+H2)+'" stroke="#2a2e39" stroke-width=".6"/><text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" class="oc-ax">'+(narrow&&t!=="09:15"&&t!=="15:30"?t.slice(0,2):t)+'</text>')});
+ ticks.forEach(function(t){var x=X(t);o.push('<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(y0+H2)+'" stroke="#2a2e39" stroke-width=".6"/><text x="'+x+'" y="'+(H-6)+'" text-anchor="middle" class="oc-ax">'+(narrow&&t!==ss&&t!==se?t.slice(0,2):t)+'</text>')});
  o.push('</svg>');return o.join("");
 }
 
+/* ---------- OI profile: underlying candles + CE/PE OI bars at each strike's price level (tap = popup) ---------- */
+function lac(n){if(n==null||isNaN(n))return "—";var a=Math.abs(n),s=n<0?"−":"";if(a>=1e7)return s+(a/1e7).toFixed(2)+" Cr";if(a>=1e5)return s+(a/1e5).toFixed(2)+" Lac";if(a>=1e3)return s+(a/1e3).toFixed(2)+" K";return s+Math.round(a)}
+var PROF={ex:null,idx:null,name:null};
+function profile(ex,idx,W,name){
+ var cd=idx.candles,B=(cd&&cd.b)||[],rows=(ex.rows||[]).slice().sort(function(a,b){return a.k-b.k});
+ if(!rows.length)return '<div class="oc-empty">Strikes ka data nahi</div>';
+ var narrow=W<560,H=narrow?380:440,T=16,Bm=22,axW=narrow?58:70,profW=narrow?Math.round(W*.36):Math.round(W*.30),cW=W-axW-profW-6;
+ var sp=ex.spot!=null?ex.spot:idx.spot,step=rows.length>1?rows[1].k-rows[0].k:1;
+ var lo=Infinity,hi=-Infinity;B.forEach(function(b){lo=Math.min(lo,b[3]);hi=Math.max(hi,b[2])});
+ if(sp!=null){lo=Math.min(lo,sp);hi=Math.max(hi,sp)}
+ var atm=ex.atm!=null?ex.atm:idx.atm;if(atm!=null){lo=Math.min(lo,atm-5*step);hi=Math.max(hi,atm+5*step)}
+ if(!isFinite(lo)){lo=rows[0].k;hi=rows[rows.length-1].k}
+ var pad=(hi-lo)*.04;lo-=pad;hi+=pad;
+ var Y=function(v){return T+(hi-v)/(hi-lo)*(H-T-Bm)};
+ var vis=rows.filter(function(r){return r.k>=lo&&r.k<=hi});
+ var gap=Math.abs(Y(0)-Y(step)),bh=Math.max(3,Math.min(10,gap/2-1.5));
+ var mx=1;vis.forEach(function(r){mx=Math.max(mx,(r.ce&&r.ce.oi)||0,(r.pe&&r.pe.oi)||0)});
+ var o=['<svg class="oc-svg oc-profsvg" viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="xMidYMin meet">'];
+ // strike grid + labels (thin out when crowded)
+ var every=gap<14?2:1;
+ vis.forEach(function(r,i){var y=Y(r.k);o.push('<line x1="0" x2="'+(W-axW)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#232733" stroke-width="1"/>');
+  if(i%every===0||r.k===atm)o.push('<text x="'+(W-axW+4)+'" y="'+(y+4).toFixed(1)+'" class="oc-ax'+(r.k===atm?' oc-axatm':'')+'">'+px(r.k,0)+'</text>')});
+ // candles
+ if(B.length){var n=B.length,cw=cW/n,bw=Math.max(1.5,Math.min(9,cw*.65));
+  B.forEach(function(b,i){var x=6+i*cw+cw/2,up=b[4]>=b[1],c=up?"#00C98B":"#FF4D6D",yo=Y(b[1]),yc=Y(b[4]);
+   o.push('<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+Y(b[2]).toFixed(1)+'" y2="'+Y(b[3]).toFixed(1)+'" stroke="'+c+'" stroke-width="1"/>');
+   o.push('<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,Math.abs(yc-yo)).toFixed(1)+'" fill="'+c+'"/>')});
+  var lbl=[0,Math.floor(n/2),n-1];lbl.forEach(function(i){var x=6+i*cw+cw/2;o.push('<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+(i===0?"start":i===n-1?"end":"middle")+'" class="oc-ax">'+esc(B[i][0])+'</text>')});
+ }else o.push('<text x="12" y="'+(H/2)+'" class="oc-ax">price candles abhi nahi</text>');
+ // OI bars (profile column): CE red above the strike line, PE green below
+ var px0=W-axW-profW;
+ o.push('<rect x="'+px0+'" y="'+T+'" width="'+profW+'" height="'+(H-T-Bm)+'" fill="#131722" opacity=".55"/>');
+ vis.forEach(function(r){var y=Y(r.k),c=r.ce||{},p=r.pe||{},wc=(c.oi||0)/mx*(profW-8),wp=(p.oi||0)/mx*(profW-8);
+  var dc=pct(c.doi,c.oi),dp=pct(p.doi,p.oi);
+  if(wc>0)o.push('<rect x="'+(px0+4)+'" y="'+(y-bh-.5).toFixed(1)+'" width="'+wc.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="#FF4D6D" opacity="'+(dc!=null&&dc<0?.45:.9)+'" rx="1.5"/>');
+  if(wp>0)o.push('<rect x="'+(px0+4)+'" y="'+(y+.5).toFixed(1)+'" width="'+wp.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="#00C98B" opacity="'+(dp!=null&&dp<0?.45:.9)+'" rx="1.5"/>');
+  if(PROF.k===r.k)o.push('<rect x="0" y="'+(y-gap/2).toFixed(1)+'" width="'+(W-axW)+'" height="'+gap.toFixed(1)+'" fill="#2962FF" opacity=".18"/>');
+  // tap / hover target across the full width
+  o.push('<rect class="oc-hit" data-oip-k="'+r.k+'" x="0" y="'+(y-gap/2).toFixed(1)+'" width="'+W+'" height="'+gap.toFixed(1)+'" fill="transparent"/>');
+ });
+ if(sp!=null){var ys=Y(sp);o.push('<line x1="0" x2="'+(W-axW)+'" y1="'+ys.toFixed(1)+'" y2="'+ys.toFixed(1)+'" stroke="#F5A623" stroke-dasharray="5 3" stroke-width="1.2"/>');
+  o.push('<rect x="'+(W-axW+1)+'" y="'+(ys-8).toFixed(1)+'" width="'+(axW-2)+'" height="16" rx="3" fill="#F5A623"/><text x="'+(W-axW+4)+'" y="'+(ys+4).toFixed(1)+'" class="oc-spot">'+px(sp,0)+'</text>')}
+ o.push('<text x="'+(px0+4)+'" y="12" class="oc-ts">OI PROFILE · tap strike</text>');
+ o.push('</svg>');
+ return '<div class="oc-prof">'+o.join("")+'<div class="oc-pop" id="ocPop"></div></div>';
+}
+function profPop(k,wrap){
+ var ex=PROF.ex,idx=PROF.idx;if(!ex||!wrap)return;var pop=wrap.querySelector(".oc-pop");if(!pop)return;
+ var r=(ex.rows||[]).filter(function(x){return x.k===k})[0];if(!r){pop.style.display="none";return}
+ var c=r.ce||{},p=r.pe||{},dc=pct(c.doi,c.oi),dp=pct(p.doi,p.oi);
+ function line(lbl,l,d){return '<div class="oc-popl"><span>'+lbl+'</span><b>'+lac(l.oi)+'</b>'+(d==null?(l.doi>0?' / <span class="oc-up">nayi OI (kal 0)</span>':'<span class="oc-0"> / —</span>'):' / '+pspan(d))+'</div>'+
+   '<div class="oc-pops">Δ day '+(l.doi==null?"—":(l.doi>0?"+":"")+lac(l.doi))+' · 15m '+(pct(l.d15,l.oi)==null?"—":pfmt(pct(l.d15,l.oi)))+'</div>'}
+ pop.innerHTML='<div class="oc-poph">'+esc(PROF.name==="GOLDM"?"GOLDM":PROF.name)+' '+px(k,0)+' <span class="oc-0">· '+esc(dlabel(ex.expiry))+'</span><button type="button" class="oc-popx" aria-label="close">×</button></div>'+line("Call OI",c,dc)+line("Put OI",p,dp);
+ pop.style.display="block";
+ var svg=wrap.querySelector("svg"),hit=wrap.querySelector('[data-oip-k="'+k+'"]');
+ if(svg&&hit){var rb=hit.getBoundingClientRect(),wb=wrap.getBoundingClientRect();var top=rb.top-wb.top+rb.height/2-pop.offsetHeight-6;if(top<0)top=rb.top-wb.top+rb.height/2+8;pop.style.top=top+"px";pop.style.left=Math.max(4,Math.min(wb.width-pop.offsetWidth-4,(wb.width-pop.offsetWidth)/2-40))+"px"}
+}
 function card(k,v,sub,c,x){return '<div class="oc-card'+(x?" "+x:"")+'"><div class="oc-ck">'+k+'</div><div class="oc-cv '+(c||"")+'">'+v+'</div>'+(sub?'<div class="oc-cs">'+sub+'</div>':"")+'</div>'}
 
 function table(ex){
@@ -151,37 +210,55 @@ function render(){
  var b=window.NL&&NL.bundle,oc=b&&b.oi_chain,els=document.querySelectorAll("[data-oichain]");
  els.forEach(function(el){
   if(!oc||!oc.indices){var pub=/\/public\//.test(location.pathname)?"":' Key wala data nahi khula to <a class="b" href="public/oi.html">public OI page</a> kholiye.';el.innerHTML='<div class="oc-empty">OI data abhi load ho raha hai… (market time mein har 2 min update).'+pub+'</div>';return}
-  var names=Object.keys(oc.indices);if(names.indexOf(ST.idx)<0)ST.idx=names[0];
-  var idx=oc.indices[ST.idx];idx._name=ST.idx;var exs=idx.expiries||[];if(ST.exp>=exs.length)ST.exp=0;var ex=exs[ST.exp]||{};ex._spot=idx.spot;
+  var names=(oc.order||["NIFTY","SENSEX","GOLDM"]).filter(function(n){return oc.indices[n]});Object.keys(oc.indices).forEach(function(n){if(names.indexOf(n)<0)names.push(n)});if(names.indexOf(ST.idx)<0)ST.idx=names[0];
+  var idx=oc.indices[ST.idx];idx._name=ST.idx;var exs=idx.expiries||[];if(ST.exp>=exs.length)ST.exp=0;var ex=exs[ST.exp]||{};ex._spot=ex.spot!=null?ex.spot:idx.spot;
   var W=Math.max(300,Math.min(1100,(el.clientWidth||window.innerWidth||360)-2));
-  var mk=oc.market?'<span class="oc-live">● LIVE · har 2 min</span>':'<span class="oc-closed">Market band · last session '+esc(dlabel(oc.session_date))+' ka closing OI</span>';
+  var live=idx.market!=null?idx.market:oc.market,mkt=ST.idx==="GOLDM"?"MCX":"Market";
+  var mk=live?'<span class="oc-live">● LIVE · har 2 min</span>':'<span class="oc-closed">'+mkt+' band · last session '+esc(dlabel(idx.session_date||oc.session_date))+' ka closing OI</span>';
+  var uline=(idx.unit||ST.idx==="GOLDM")?'<div class="oc-units">'+esc(idx.label||ST.idx)+' · lot '+esc(ex.lot||"—")+(idx.lot_unit?" ("+esc(idx.lot_unit)+")":"")+' · '+esc(idx.unit||"OI as Angel reports")+(idx.price_unit?" · price "+esc(idx.price_unit):"")+(idx.sess_start?" · session "+esc(idx.sess_start)+"–"+esc(idx.sess_end)+" IST":"")+'</div>':"";
   var h=[];
-  h.push('<div class="oc-bar"><div class="oc-seg">'+names.map(function(n){return '<button type="button" data-oi-idx="'+n+'" class="'+(n===ST.idx?"on":"")+'">'+n+'</button>'}).join("")+'</div>');
+  h.push('<div class="oc-bar"><div class="oc-seg">'+names.map(function(n){return '<button type="button" data-oi-idx="'+n+'" class="'+(n===ST.idx?"on":"")+'">'+(n==="GOLDM"?"GOLDM <small>MCX</small>":n)+'</button>'}).join("")+'</div>');
   h.push('<div class="oc-seg">'+exs.map(function(e,i){return '<button type="button" data-oi-exp="'+i+'" class="'+(i===ST.exp?"on":"")+'">'+esc(dlabel(e.expiry))+(i===0?" · near":"")+'</button>'}).join("")+'</div>');
   h.push('<div class="oc-meta">'+mk+' · '+ist(oc.updated)+'</div></div>');
   var addp=function(side,k){var r=(ex.rows||[]).filter(function(x){return x.k===k})[0],l=r&&r[side];if(!l)return "";var dd=pct(l.doi,l.oi);return dd==null?"":'(+'+fmt(l.doi).replace(/^[+]/,"")+' · '+pspan(dd)+')'};
+  var spotCard=function(){var sv=ex.spot!=null?ex.spot:idx.spot,pc=ex.spot!=null?ex.spot_pc:idx.spot_pc,ch=(sv!=null&&pc)?sv-pc:idx.spot_chg;
+    var lab=ST.idx==="GOLDM"?esc(ex.fut||idx.spot_label||"GOLDM FUT")+" (underlying)":esc(ST.idx)+" SPOT";
+    return card(lab,px(sv),ch==null?"":'<span class="'+cls(ch)+'">'+arrow(ch)+" "+px(Math.abs(ch))+(pc?" ("+pfmt(ch/pc*100)+")":"")+'</span>')};
+  var futCard=function(){if(ex.fut_oi==null)return "";var fp=pct(ex.fut_doi,ex.fut_oi),pc=ex.spot_pc,ch=(ex.spot!=null&&pc)?ex.spot-pc:null;
+    return card("FUT OI · "+esc(ex.fut||""),fmt(ex.fut_oi)+" "+pspan(fp,"oc-pbig"),"Δ day: "+chg(ex.fut_doi)+" · "+bu(buildupJs(ch,ex.fut_doi)))};
   var t=ex.tot||{},tilt=(t.pe_doi!=null&&t.ce_doi!=null)?(t.pe_doi>t.ce_doi?'<span class="oc-up">PE writing zyada</span>':'<span class="oc-dn">CE writing zyada</span>'):"—";
+  if(uline)h.push(uline);
   h.push('<div class="oc-cards">',
-   card(esc(ST.idx)+" SPOT",px(idx.spot),idx.spot_chg==null?"":'<span class="'+cls(idx.spot_chg)+'">'+arrow(idx.spot_chg)+" "+px(Math.abs(idx.spot_chg))+(idx.spot_pc?" ("+(idx.spot_chg/idx.spot_pc*100).toFixed(2)+"%)":"")+'</span>'),
+   spotCard(),
    card("PCR (OI)",ex.pcr==null?"—":ex.pcr.toFixed(2),"Δ OI PCR: "+(ex.pcr_chg==null?"—":ex.pcr_chg.toFixed(2)),ex.pcr>=1?"oc-up":"oc-dn"),
    card("RESISTANCE · max CE OI",px(ex.res,0),"sabse zyada CE add: "+px(ex.res_add,0)+" "+addp("ce",ex.res_add),"oc-dn"),
    card("SUPPORT · max PE OI",px(ex.sup,0),"sabse zyada PE add: "+px(ex.sup_add,0)+" "+addp("pe",ex.sup_add),"oc-up"),
    card("CE OI Δ day",chg(t.ce_doi)+" "+pspan(pct(t.ce_doi,t.ce_oi),"oc-pbig"),"15m: "+chg(t.ce_d15)+" "+pspan(pct(t.ce_d15,t.ce_oi))),
    card("PE OI Δ day",chg(t.pe_doi)+" "+pspan(pct(t.pe_doi,t.pe_oi),"oc-pbig"),"15m: "+chg(t.pe_d15)+" "+pspan(pct(t.pe_d15,t.pe_oi))),
-   card("OI TILT",tilt,"ATM ±10 strikes · ATM "+px(idx.atm,0),"","oc-wide"),
+   futCard(),
+   card("OI TILT",tilt,"ATM ±10 strikes · ATM "+px(ex.atm!=null?ex.atm:idx.atm,0),"","oc-wide"),
   '</div>');
+  PROF.ex=ex;PROF.idx=idx;PROF.name=ST.idx;
+  var cdn=idx.candles||{};
+  h.push('<div class="oc-panel"><div class="oc-ph"><span>OI PROFILE · '+esc(cdn.sym||ST.idx)+' '+esc(cdn.tf||"")+' · '+esc(dlabel(ex.expiry))+' strikes</span><span class="oc-0">Call <i class="oc-sw r"></i> Put <i class="oc-sw g"></i> · halka = OI ghata</span></div>',profile(ex,idx,W-18,ST.idx),'</div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>STRIKE-WISE OI · '+esc(ST.idx)+' '+esc(dlabel(ex.expiry))+'</span><span class="oc-seg oc-mode">',
    [["oi","OI"],["doi","Δ Day"],["d15","Δ 15m"]].map(function(m){return '<button type="button" data-oi-mode="'+m[0]+'" class="'+(ST.mode===m[0]?"on":"")+'">'+m[1]+'</button>'}).join(""),'</span></div>',
    butterfly(ex,idx,Math.min(W-18,780),ST.mode),
    '<div class="oc-leg"><span><i style="background:'+RED+'"></i>CE OI badha</span><span><i style="background:'+GRN+'"></i>PE OI badha</span><span><i class="oc-hatch"></i>OI ghata (dhaariyan)</span><span><i style="background:#2962FF;opacity:.5"></i>ATM</span><span><i style="background:'+AMB+'"></i>Spot</span><span><i class="oc-box r"></i>Resistance</span><span><i class="oc-box g"></i>Support</span></div></div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>DIN BHAR KA OI · '+esc(ST.idx)+' '+esc(dlabel(idx.series_expiry))+' (ATM ±10, pichhle din se change)</span></div>',daychart(idx,W-18),'</div>');
   h.push('<div class="oc-panel"><div class="oc-ph"><span>OPTION CHAIN · OI ▲ badh raha / ▼ ghat raha</span><span class="oc-0">lot '+esc(ex.lot||"—")+'</span></div>',table(ex),
-   '<div class="oc-note">LB = Long build-up (price ▲ OI ▲) · SB = Short build-up (price ▼ OI ▲) · SC = Short covering (price ▲ OI ▼) · LU = Long unwinding (price ▼ OI ▼). Δ Day = pichhle trading din ('+esc(dlabel(oc.prev_date))+') ke close OI se. 5m/15m = is page ke apne snapshots se. Source: Angel One. Data only, paper/demo, advice nahi.</div></div>');
+   '<div class="oc-note">LB = Long build-up (price ▲ OI ▲) · SB = Short build-up (price ▼ OI ▲) · SC = Short covering (price ▲ OI ▼) · LU = Long unwinding (price ▼ OI ▼). Δ Day = pichhle trading din ('+esc(dlabel(idx.prev_date||oc.prev_date))+') ke close OI se. 5m/15m = is page ke apne snapshots se. Source: Angel One. Data only, paper/demo, advice nahi.</div></div>');
   el.innerHTML=h.join("");
+  if(PROF.k!=null){var w=el.querySelector(".oc-prof");if(w)profPop(PROF.k,w)}
  });
 }
+document.addEventListener("click",function(e){
+ var x=e.target.closest&&e.target.closest(".oc-popx");if(x){PROF.k=null;var pw=x.closest(".oc-prof");if(pw){pw.querySelector(".oc-pop").style.display="none";pw.querySelectorAll("rect[fill='#2962FF']").forEach(function(r){r.remove()})}return}
+ var hh=e.target.closest&&e.target.closest("[data-oip-k]");if(hh){PROF.k=+hh.getAttribute("data-oip-k");render();return}});
+document.addEventListener("mouseover",function(e){if(window.matchMedia&&!window.matchMedia("(hover:hover)").matches)return;var hh=e.target.closest&&e.target.closest("[data-oip-k]");if(!hh)return;var k=+hh.getAttribute("data-oip-k");if(PROF.hk===k)return;PROF.hk=k;profPop(k,hh.closest(".oc-prof"))});
 document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-oi-idx],[data-oi-exp],[data-oi-mode]");if(!t)return;
- if(t.hasAttribute("data-oi-idx")){ST.idx=t.getAttribute("data-oi-idx");ST.exp=0}
+ if(t.hasAttribute("data-oi-idx")){ST.idx=t.getAttribute("data-oi-idx");ST.exp=0;PROF.k=null}
+ if(t.hasAttribute("data-oi-exp"))PROF.k=null;
  if(t.hasAttribute("data-oi-exp"))ST.exp=+t.getAttribute("data-oi-exp");
  if(t.hasAttribute("data-oi-mode"))ST.mode=t.getAttribute("data-oi-mode");
  save();render();});
