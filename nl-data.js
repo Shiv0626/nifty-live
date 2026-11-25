@@ -6,6 +6,8 @@
 "use strict";
 const q=new URLSearchParams(location.search);
 const REPO="Shiv0626/nifty-live",RAW="https://raw.githubusercontent.com/"+REPO+"/",BR=(q.get("br")==="live_test"?"live_test":"live"),API="https://api.github.com/repos/"+REPO;
+const JSD="https://cdn.jsdelivr.net/gh/"+REPO+"@";
+const ON_CHART=/chart\.html$/i.test(location.pathname);
 const K=q.get("k")||(function(){try{return localStorage.getItem("nl_k")||""}catch(e){return ""}})();
 const NOTUN=q.get("noTunnel")==="1"||q.get("forceFallback")==="1";
 const LAG=10;               // seconds after a bucket starts before we ask for it (push takes ~2-4s)
@@ -39,15 +41,32 @@ function accept(b){
   tHosts=tHosts.slice(0,8);
   emit();return true;
 }
-async function tryPaths(paths){
-  const rs=await Promise.all(paths.filter(p=>!missing.has(p)).map(p=>getJ(RAW+BR+"/"+p,7000).then(dec).catch(e=>{if(String(e.message).includes("404"))missing.add(p);return null})));
-  const ok=rs.filter(Boolean).sort((a,b)=>b.pushed_ms-a.pushed_ms);return ok[0]||null;
+function roots(){return [RAW+BR+"/",JSD+BR+"/"]}
+function isPublic(j){return !!(j&&typeof j==="object"&&j.kind==="public"&&!j.ct&&!j.iv&&j.dash)}
+async function tryPaths(paths,decode){
+  const decFn=decode||dec;
+  for(const root of roots()){
+    const rs=await Promise.all(paths.filter(p=>!missing.has(root+p)).map(p=>getJ(root+p,7000).then(decFn).catch(e=>{if(String(e.message).includes("404"))missing.add(root+p);return null})));
+    const ok=rs.filter(Boolean).sort((a,b)=>(b.pushed_ms||0)-(a.pushed_ms||0));
+    if(ok[0])return ok[0];
+  }
+  return null;
+}
+async function loadPublicFeed(){
+  const now=Date.now()/1000,f=Math.floor((now-LAG)/Bs);
+  let b=await tryPaths(["p/"+f+".json","p/"+(f-1)+".json","p/"+(f-2)+".json"],j=>isPublic(j)?j:null);
+  if(b&&accept(b))return true;
+  b=await tryPaths(["public.json"],j=>isPublic(j)?j:null);
+  if(b&&accept(b))return true;
+  return false;
 }
 async function loadBundle(){
   if(inflight)return inflight;
   inflight=(async()=>{
     const now=Date.now()/1000,f=Math.floor((now-LAG)/Bs),s=Math.floor((now-LAG)/SLOWs);
     if(bundle&&bundle.fb>=f)return;
+    // chart.html without a key: load the public plaintext feed so the GH chart still renders
+    if(!K&&ON_CHART){if(await loadPublicFeed())return;if(!lastErr)lastErr="GitHub public data abhi nahi mili";return}
     let b=await tryPaths(["f/"+f+".json"]);
     if(!b)b=await tryPaths(["f/"+(f-1)+".json","f/"+(f-2)+".json"]);
     if(b&&accept(b))return;
@@ -59,11 +78,8 @@ async function loadBundle(){
     const back=[];for(let i=2;i<24;i++)back.push("s/"+(s-i)+".json");
     b=await tryPaths(back);if(b&&accept(b))return;
     if(!bundle){
-      b=await getJ(RAW+BR+"/latest.json",8000).then(dec).catch(()=>null);if(b&&accept(b))return;
+      b=await tryPaths(["latest.json"]);if(b&&accept(b))return;
     }
-    // last resort, at most every 3 min: GitHub API pointer (60/h per IP) -> immutable sha URL
-    if(Date.now()-lastApiPtr>180000){lastApiPtr=Date.now();
-      try{const r=await getJ(API+"/git/ref/heads/"+BR,6000);b=await getJ(RAW+r.object.sha+"/latest.json",8000).then(dec);if(accept(b))return}catch(e){}}
     if(!lastErr)lastErr="GitHub data abhi nahi mili";
   })().catch(e=>{lastErr=String(e.message||e)}).finally(()=>{inflight=null});
   return inflight;

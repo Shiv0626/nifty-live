@@ -175,20 +175,33 @@
 <div id="brokerModal"><div class="modalbox"><div class="h" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 id="brokerModalTitle">Connect</h2><button type="button" class="btn" id="brokerModalClose">Close</button></div><div id="brokerModalBody"></div></div></div>
 <script>
 /* Public page: never probe a tunnel or host list, never put a key on a URL.
-   Chart links go to the repo-root chart.html (not /public/chart.html) without a key. */
+   Chart links open the repo-root GitHub chart (../chart.html) without a key.
+   On chart.html, nl-data.js loads the public plaintext feed when no key is present. */
 (function(){
- function fix(e){
-  var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html"]');
-  if(!a)return;
+ function rewrite(a){
   try{
-   var u=new URL(a.getAttribute('href'), location.href);
-   u.searchParams.delete('k');
-   a.href='../chart.html'+u.search+u.hash;
+   var raw=a.getAttribute('href')||'';
+   if(raw.indexOf('chart.html')<0 && raw.indexOf('go=chart')<0) return;
+   var u=new URL(raw, location.href);
+   var sym=u.searchParams.get('symbol')||'';
+   var q=sym?('?symbol='+encodeURIComponent(sym)):'';
+   if(u.searchParams.get('tab')==='option') q+=(q?'&':'?')+'tab=option';
+   a.href='../chart.html'+q;
+   a.setAttribute('target','_blank');
+   a.setAttribute('rel','noopener');
   }catch(err){}
+ }
+ function fix(e){
+  var a=e.target&&e.target.closest&&e.target.closest('a[href*="chart.html"],a[href*="go=chart"]');
+  if(a) rewrite(a);
  }
  ['pointerdown','touchstart','mouseover','focusin','click'].forEach(function(ev){
   document.addEventListener(ev,fix,{capture:true,passive:true});
  });
+ function sweep(){document.querySelectorAll('a[href*="chart.html"],a[href*="go=chart"]').forEach(rewrite)}
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',sweep);
+ else sweep();
+ setInterval(sweep,2000);
  function hideBroker(){
   var cards=document.getElementById('brokerCards');
   var modal=document.getElementById('brokerModal');
@@ -206,5 +219,5 @@
  else hideBroker();
 })();
 </script>
-<script src="nl-data.js?v=3"></script>
+<script src="nl-data.js?v=4"></script>
 <script src="app.js?v=2"></script></body></html>

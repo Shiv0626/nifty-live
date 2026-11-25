@@ -6,6 +6,7 @@
 (function(){
 "use strict";
 const REPO="Shiv0626/nifty-live",RAW="https://raw.githubusercontent.com/"+REPO+"/live/",API="https://api.github.com/repos/"+REPO;
+const JSD="https://cdn.jsdelivr.net/gh/"+REPO+"@live/";
 const LAG=10;
 let Bs=30,SLOWs=300;
 let bundle=null,lastBundleAt=0,lastErr="",inflight=null,missing=new Set(),lastApiPtr=0;
@@ -25,14 +26,18 @@ function accept(b){
   emit(); return true;
 }
 async function tryPaths(paths){
-  const rs=await Promise.all(paths.filter(p=>!missing.has(p)).map(p=>
-    getJ(RAW+p,7000).then(j=>isPublic(j)?j:null).catch(e=>{
-      if(String(e.message).includes("404")) missing.add(p);
-      return null;
-    })
-  ));
-  const ok=rs.filter(Boolean).sort((a,b)=>(b.pushed_ms||0)-(a.pushed_ms||0));
-  return ok[0]||null;
+  const roots=[RAW,JSD];
+  for(const root of roots){
+    const rs=await Promise.all(paths.filter(p=>!missing.has(root+p)).map(p=>
+      getJ(root+p,7000).then(j=>isPublic(j)?j:null).catch(e=>{
+        if(String(e.message).includes("404")) missing.add(root+p);
+        return null;
+      })
+    ));
+    const ok=rs.filter(Boolean).sort((a,b)=>(b.pushed_ms||0)-(a.pushed_ms||0));
+    if(ok[0]) return ok[0];
+  }
+  return null;
 }
 async function loadBundle(){
   if(inflight)return inflight;
@@ -44,17 +49,7 @@ async function loadBundle(){
     b=await tryPaths(["public.json"]);
     if(b&&accept(b))return;
     if(bundle)return;
-    if(Date.now()-lastApiPtr>180000){
-      lastApiPtr=Date.now();
-      try{
-        const r=await getJ(API+"/git/ref/heads/live",6000);
-        const sha=r&&r.object&&r.object.sha;
-        if(sha){
-          b=await getJ(RAW.replace(/\/live\/$/,"/"+sha+"/")+"public.json",8000);
-          if(accept(b))return;
-        }
-      }catch(e){}
-    }
+
     if(!lastErr) lastErr="GitHub public data abhi nahi mili";
   })().catch(e=>{lastErr=String(e.message||e)}).finally(()=>{inflight=null});
   return inflight;
