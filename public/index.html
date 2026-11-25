@@ -5,6 +5,7 @@
 <title>Nifty 50 Setup Dashboard · Public</title>
 <script>/* Public: ?go=chart opens the keyless public chart page, never private chart.html and never a key. */(function(){var q=new URLSearchParams(location.search);if(q.get("go")!=="chart")return;q.delete("go");location.replace("chart-view.html?"+q.toString())})()</script>
 <link rel="stylesheet" href="app.css?v=3">
+<link rel="stylesheet" href="oi-chain.css?v=1">
 <link rel="stylesheet" href="iceberg-page.css?v=1">
 <link rel="stylesheet" href="variant-page.css?v=1">
 </head><body>
@@ -49,6 +50,7 @@
     <button type="button" class="tabbtn" data-tab="news">News</button>
     <button type="button" class="tabbtn" data-tab="movers">F&amp;O Movers</button>
     <button type="button" class="tabbtn" data-tab="btst">BTST/STBT</button>
+    <button type="button" class="tabbtn" data-tab="oi">OI · Nifty/Sensex</button>
     <button type="button" class="tabbtn" data-tab="heat">Heatmap / Nifty</button>
     <button type="button" class="tabbtn" data-tab="log">Log</button>
     <button type="button" class="tabbtn" data-tab="portfolio">Portfolio</button>
@@ -112,6 +114,10 @@
     <div class="tabpane panel" data-tab="btst" id="btstP">
      <div class="lbl"><span>BTST / STBT · paper</span><span id="btstN"></span></div>
      <div class="scroll" id="btst"></div>
+    </div>
+    <div class="tabpane" data-tab="oi" id="oiP">
+     <div class="lbl"><span>OI · NIFTY + SENSEX · strike-wise (index options only)</span><span><a class="b" href="oi.html" target="_self">Full screen ↗</a></span></div>
+     <div class="oc-wrap" data-oichain></div>
     </div>
     <div class="tabpane panel" data-tab="heat" id="heatP">
      <div class="lbl"><span><span id="heatT">NIFTY 50 HEAT</span> <span class="dm hs">· vs prev close</span> <button id="heatBtn" class="hbtn">SECTOR</button></span><span id="breadth"></span></div>
@@ -232,4 +238,5 @@
 <script src="nl-data.js?v=5"></script>
 <script src="iceberg-page.js?v=3"></script>
 <script src="variant-page.js?v=3"></script>
-<script src="app.js?v=6"></script></body></html>
+<script src="app.js?v=6"></script>
+<script src="oi-chain.js?v=1"></script></body></html>
