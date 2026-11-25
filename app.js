@@ -51,7 +51,7 @@ function iceSigTable(rows, cols){
   let pn="";
   if(r.pnl_mode==="premium_na") pn="premium n/a";
   else if(r.pnl!=null) pn="₹"+sg(Number(r.pnl),0);
-  else if(r.upnl!=null) pn="u₹"+sg(Number(r.upnl),0);
+  else if(String(r.status||"").toUpperCase()!=="CLOSED") pn="—";
   const lots=r.lots||2, lot=r.lot, typ=r.option_type||"";
   const strike=r.option_strike!=null?r.option_strike:"";
   const cname=r.contract?esc(r.contract):"";
@@ -97,7 +97,7 @@ function iceOptLine(r){
  if(ex!=null) bits.push(`→ <b class="dm">${f(ex)}</b>`);
  else if(r.premium_ltp!=null) bits.push(`LTP <b class="dm">${f(r.premium_ltp)}</b>`);
  if(r.pnl!=null) bits.push(`<b class="${cl(r.pnl)}">₹${sg(r.pnl,0)}</b>`);
- else if(r.upnl!=null) bits.push(`uPnL <b class="${cl(r.upnl)}">₹${sg(r.upnl,0)}</b>`);
+ else if(String(r.status||"").toUpperCase()!=="CLOSED") bits.push("status only");
  else if(r.pnl_mode==="premium_na") bits.push("premium n/a");
  if(r.r!=null&&st==="CLOSED") bits.push(`<b class="${cl(r.r)}">${sg(r.r,2)}R</b>`);
  if(r.r_label) bits.push(`<span class="m">${esc(r.r_label)}</span>`);
@@ -163,24 +163,28 @@ function iceSkipRow(r){
 function iceNum(n,d){const x=Number(n);return n==null||n===""||isNaN(x)?"—":f(x,d)}
 function iceWr(v){const x=Number(v);if(v==null||v===""||isNaN(x))return "—";return (Math.abs(x-Math.round(x))<1e-9?String(Math.round(x)):x.toFixed(1))+"%"}
 function iceExitPx(r){
- const x1=r.lot1_premium_exit, x2=r.lot2_premium_exit, ltp=r.premium_ltp, px=r.premium_exit;
+ const closed=String(r.status||"").toUpperCase()==="CLOSED";
+ if(!closed) return "—";
+ const x1=r.lot1_premium_exit, x2=r.lot2_premium_exit, px=r.premium_exit;
  const a=x1!=null?iceNum(x1,2):"";
  const b=x2!=null?iceNum(x2,2):"";
  if(a&&b) return a===b?a:a+"/"+b;
- if(a&&ltp!=null) return a+" / ltp "+iceNum(ltp,2);
+ if(a) return a;
  if(b) return b;
- if(ltp!=null) return "ltp "+iceNum(ltp,2);
  if(px!=null) return iceNum(px,2);
  return "—";
 }
 function iceRowPnl(r){
+ // GH / public: booked P&L only — never open/unrealised
  const closed=String(r.status||"").toUpperCase()==="CLOSED";
- const v=closed?(r.pnl!=null?r.pnl:r.upnl):(r.upnl!=null?r.upnl:r.pnl);
+ if(!closed) return null;
+ const v=r.pnl;
  return v==null||isNaN(Number(v))?null:Number(v);
 }
 function iceRowR(r){
  const closed=String(r.status||"").toUpperCase()==="CLOSED";
- const v=closed?(r.r!=null?r.r:r.uR):(r.uR!=null?r.uR:r.r);
+ if(!closed) return null;
+ const v=r.r;
  return v==null||isNaN(Number(v))?null:Number(v);
 }
 function iceRowWhy(r){
@@ -242,7 +246,8 @@ function renderIcebergSignals(sig){
  const rows=view.rows||[];
  const skipped=view.skipped_today||[];
  const bk=books[ICE_BOOK];
- const head=`<div class="iceSigH"><span>ICEBERG SIGNALS (paper)${bk?" · "+esc(ICE_BOOK)+" book":""}</span><span class="info">PAPER ONLY · not A/A+</span></div>`+iceBookTabs(sig)+(bk?`<div class="iceBookDesc">${esc(bk.label||ICE_BOOK)} — ${esc(bk.desc||"")} · separate ledger, no day stop</div>`:"")+iceStatsBlock(view);
+ const varCards=(typeof iceVariantCards==="function")?iceVariantCards("iceberg.html"):"";
+ const head=`<div class="iceSigH"><span>ICEBERG VARIANTS (paper)</span><span class="info">PAPER ONLY · not A/A+</span></div>`+varCards+iceBookTabs(sig)+(bk?`<div class="iceBookDesc">${esc(bk.label||ICE_BOOK)} — ${esc(bk.desc||"")} · separate ledger, no day stop · click a card for WATCH / LIVE / CLOSED</div>`:"")+iceStatsBlock(view);
  let body="";
  body+=`<div class="iceSigSub">ARMED · awaiting 5m confirmation</div>`;
  if(!armed.length) body+=`<div class="m">Koi armed setup nahi.</div>`;
