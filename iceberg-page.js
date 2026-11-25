@@ -210,6 +210,10 @@ function fullChartHref(sym, extra){
   if(sym) p.set("symbol",sym);
   if(extra) Object.keys(extra).forEach(k=>{if(extra[k]!=null&&extra[k]!=="") p.set(k,String(extra[k]))});
   if(pub) return "chart-view.html?"+p.toString();
+  let k="";
+  try{k=new URLSearchParams(location.search).get("k")||""}catch(e){}
+  if(!k) return "public/chart-view.html?"+p.toString();
+  p.set("k",k);
   return "chart.html?"+p.toString();
 }
 function bindOpenChart(sym){

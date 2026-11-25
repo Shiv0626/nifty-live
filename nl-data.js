@@ -66,7 +66,7 @@ async function loadBundle(){
     const now=Date.now()/1000,f=Math.floor((now-LAG)/Bs),s=Math.floor((now-LAG)/SLOWs);
     if(bundle&&bundle.fb>=f)return;
     // chart.html without a key: load the public plaintext feed so the GH chart still renders
-    if(!K&&ON_CHART){if(await loadPublicFeed())return;if(!lastErr)lastErr="GitHub public data abhi nahi mili";return}
+    if(ON_CHART&&!K){if(await loadPublicFeed())return;if(!lastErr)lastErr="GitHub public data abhi nahi mili";return}
     let b=await tryPaths(["f/"+f+".json"]);
     if(!b)b=await tryPaths(["f/"+(f-1)+".json","f/"+(f-2)+".json"]);
     if(b&&accept(b))return;
@@ -80,6 +80,8 @@ async function loadBundle(){
     if(!bundle){
       b=await tryPaths(["latest.json"]);if(b&&accept(b))return;
     }
+    // chart.html with a wrong/stale key, or a sealed-feed gap: still render the public chart
+    if(ON_CHART&&!bundle){if(await loadPublicFeed())return}
     if(!lastErr)lastErr="GitHub data abhi nahi mili";
   })().catch(e=>{lastErr=String(e.message||e)}).finally(()=>{inflight=null});
   return inflight;

@@ -8,9 +8,17 @@ const sg=(n,d=2)=>n==null?"—":(n>0?"+":"")+f(n,d);
 const cl=v=>v>0?"g":v<0?"p":"dm";
 const tv=s=>"https://www.tradingview.com/chart/?symbol="+encodeURIComponent(s==="NIFTY"?"NSE:NIFTY":"NSE:"+s.replace(/[&-]/g,"_"));
 const ON_PUBLIC=/\/public\//.test(location.pathname);
-const lc=(s,opt)=>ON_PUBLIC
-  ?("chart-view.html?symbol="+encodeURIComponent(s)+(opt?"&tab=option":""))
-  :("chart.html?k="+encodeURIComponent(K)+"&symbol="+encodeURIComponent(s)+(opt?"&tab=option":""));
+function rememberedKey(){
+  if(K) return K;
+  try{const s=localStorage.getItem("nl_k")||"";if(s&&/^[0-9a-f]{16,64}$/.test(s)) return s}catch(e){}
+  return "";
+}
+const lc=(s,opt)=>{
+  if(ON_PUBLIC) return "chart-view.html?symbol="+encodeURIComponent(s)+(opt?"&tab=option":"");
+  const k=rememberedKey();
+  if(!k) return "public/chart-view.html?symbol="+encodeURIComponent(s)+(opt?"&tab=option":"");
+  return "chart.html?k="+encodeURIComponent(k)+"&symbol="+encodeURIComponent(s)+(opt?"&tab=option":"");
+};
 const ist=()=>new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour12:false});
 let L={},D=null,lastOk=0,ltpAge=null,quoteAsOf=null;
 $("niftyTv").href=tv("NIFTY");
@@ -649,7 +657,12 @@ function watchUniverse(){
  Object.keys(L||{}).forEach(s=>{if(s&&!/\d(CE|PE)$/.test(s))set.add(s)});
  return set;
 }
-function chartHref(sym){ return ON_PUBLIC?("chart-view.html?symbol="+encodeURIComponent(sym)):("?go=chart&symbol="+encodeURIComponent(sym)); }
+function chartHref(sym){
+  if(ON_PUBLIC) return "chart-view.html?symbol="+encodeURIComponent(sym);
+  const k=rememberedKey();
+  if(!k) return "public/chart-view.html?symbol="+encodeURIComponent(sym);
+  return "?go=chart&k="+encodeURIComponent(k)+"&symbol="+encodeURIComponent(sym);
+}
 function quotesAreLastSession(){
  if(ltpAge!=null&&ltpAge>6*3600) return true;
  const as=String(quoteAsOf||"");
