@@ -139,6 +139,16 @@ html,body{overflow:hidden}
 .tile b{font-size:10px}
 .sec{font-size:9px;color:var(--muted);letter-spacing:.1em;margin:4px 0 2px;grid-column:1/-1}
 table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}th{color:var(--muted);font-weight:400;font-size:9px;text-align:left;padding:2px}td{padding:3px 4px;border-top:1px solid var(--hair);white-space:nowrap}#paper table{font-size:10px}
+.histWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;min-width:0}
+.histTbl{width:max-content;min-width:100%;border-collapse:collapse}
+.histTbl th,.histTbl td{padding:3px 6px;vertical-align:top}
+.histTbl td.histName{white-space:normal;overflow-wrap:anywhere;max-width:42vw}
+.histTbl td.histWhy{white-space:normal;overflow-wrap:anywhere;max-width:28vw}
+.histTbl th:last-child,.histTbl td.histPnl{position:sticky;right:0;background:var(--panel,#131722);white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;text-align:right;box-shadow:-8px 0 8px -8px #0008;min-width:7.5em}
+.histTbl .histR{display:inline-block;margin-left:4px;font-weight:700}
+#paper table,#paperWL table{font-size:10px}
+#paper .scroll,#paperWL,#pfAaTable,#pfIceTable{overflow-x:auto;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
+
 .foot{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;padding:3px 8px;background:#0e1116;border-top:1px solid var(--border);font-family:var(--mono)}
 .snews{margin:4px 0 5px;padding:4px 6px;border-left:2px solid var(--amber);background:#12151c;border-radius:0 4px 4px 0}
 .snewsL{margin:0 0 3px}.snewsL:last-child{margin:0}
@@ -199,6 +209,9 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
  .tfbtn{padding:3px 5px;font-size:10px}
  .tabbtn{padding:8px 8px;font-size:11px}
  #iceberg table,#iceSig table{font-size:9px}
+ .histTbl{font-size:10px}
+ .histTbl td.histName{max-width:36vw}
+ .histTbl th:last-child,.histTbl td.histPnl{min-width:7em;font-size:11px}
 }
 
 .srcb{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:5px;border:1px solid currentColor;white-space:nowrap}
