@@ -509,13 +509,67 @@ function renderExpiryOiVolNote(){
  if(st) st.innerHTML=esc(j.status_base||"")+"<br>"+esc(j.status_shadow||"");
  if(nt) nt.textContent=j.text||"";
 }
+function istDate(){
+ try{return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});}catch(e){return "";}
+}
+function btstBook(){
+ /* Single source for the BTST tab and Portfolio: D.state.btst_paper (same object as the main-page BTST section). Booked P&L is net of charges+slippage, matching paper/btst_book.json. */
+ const bp=(D&&D.state&&D.state.btst_paper)||(D&&D.btst_paper)||{};
+ const tot=bp.total||{};
+ const allRows=Array.isArray(bp.rows)?bp.rows.filter(r=>r&&typeof r==="object"):[];
+ const rows=allRows.filter(r=>String(r.status||"").toUpperCase()==="CLOSED");
+ const open=allRows.filter(r=>String(r.status||"").toUpperCase()!=="CLOSED");
+ const sess=String((D&&D.state&&D.state.session_date)||(D&&D.session_date)||istDate()||"").slice(0,10);
+ const isToday=r=>{
+  const ed=String(r.exit_date||"").slice(0,10);
+  const et=String(r.exit_time||"");
+  return !!(sess&&(ed===sess||et.startsWith(sess)));
+ };
+ const today=rows.filter(isToday);
+ const rOf=x=>(x.R!=null?Number(x.R):Number(x.r))||0;
+ const nOf=x=>(x.net!=null?Number(x.net):Number(x.pnl))||0;
+ const dayP=today.reduce((s,x)=>s+nOf(x),0), dayR=today.reduce((s,x)=>s+rOf(x),0);
+ return {bp,tot,rows,today,open,sess,
+  dayP,dayR,dayT:today.length,
+  allP:Number(tot.net!=null?tot.net:tot.pnl)||0,
+  allR:Number(tot.R!=null?tot.R:tot.r)||0,
+  allT:tot.trades||rows.length,
+  wins:tot.wins,winRate:tot.winRate,
+  gross:tot.gross,charges:tot.charges,slippage:tot.slippage};
+}
 function renderBtst(){
- const b=(D&&D.state&&D.state.btst)||{},p=b.picks||[];$("btstN").textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
- $("btst").innerHTML=p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
+ const box=$("btst")||$("btstSlot"); if(!box) return;
+ const b=(D&&D.state&&D.state.btst)||(D&&D.btst)||{}, p=b.picks||[];
+ const bk=btstBook();
+ const n=$("btstN");
+ if(n) n.textContent=`${bk.open.length} live · ${bk.dayT} closed today · ${bk.allT} all`+(b.date?" · "+b.date:"");
+ const pickHtml=p.length?p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
  <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
  ${x.option?`<div class="lv" style="grid-template-columns:1fr"><span class="m">OPT <b class="a">${esc(x.option)}</b> ${esc(x.prem||"")}${x.lot?" · lot "+esc(x.lot):""}${x.risk_1lot?" · risk ₹"+esc(x.risk_1lot)+"/lot":""}</span></div>`:""}
  ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
- <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join("")||'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
+ <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join(""):'<div class="m">Aaj koi naya BTST/STBT pick nahi.</div>';
+ let h=`<div class="m" style="margin-bottom:6px">PAPER ONLY · booked P&amp;L is net of charges + slippage</div>`;
+ h+=`<div class="lv" style="grid-template-columns:repeat(2,1fr)"><span class="m">TODAY <b class="${cl(bk.dayP)}">₹${sg(bk.dayP)} / ${sg(bk.dayR)}R</b></span><span class="m">TRADES <b>${bk.dayT}</b></span><span class="m">ALL <b class="${cl(bk.allP)}">₹${sg(bk.allP)} / ${sg(bk.allR)}R</b></span><span class="m">WIN <b class="a">${f(bk.winRate,0)}% (${bk.allT})</b></span></div>`;
+ h+=`<div class="m" style="margin:2px 0 8px">gross all ₹${sg(bk.gross)} · charges ₹${sg(bk.charges)} · slippage ₹${sg(bk.slippage)} · same book as Portfolio</div>`;
+ h+=`<div class="iceSigSub">TODAY'S PICKS</div>`+pickHtml;
+ if(bk.open.length){
+  h+=`<div class="iceSigSub">OPEN</div><div class="histWrap"><table class="histTbl"><tr><th>OPEN</th><th>QTY</th><th>ENTRY</th><th>SL</th><th>T1</th></tr>`+bk.open.map(x=>{
+   const lg=/LONG/i.test(x.side||"");
+   return `<tr><td class="histName"><span class="${lg?"g":"p"}">${lg?"▲":"▼"}</span> ${esc(x.contract||x.symbol)}</td><td>${x.qty!=null?x.qty:"—"}</td><td>${x.entry_premium!=null?f(x.entry_premium):"—"}</td><td class="p">${x.sl_now!=null?f(x.sl_now):(x.spot_sl!=null?f(x.spot_sl):"—")}</td><td class="g">${x.t1!=null?f(x.t1):"—"}</td></tr>`;
+  }).join("")+`</table></div>`;
+ }
+ const histRows=bk.today.length?bk.today:bk.rows.slice(-8).reverse();
+ const histLabel=bk.today.length?"TRADE HISTORY · CLOSED TODAY":"TRADE HISTORY · CLOSED";
+ if(histRows.length){
+  h+=`<div class="iceSigSub">${histLabel}</div>`;
+  h+=`<div class="histWrap"><table class="histTbl"><tr><th>CLOSED</th><th>QTY</th><th>EXIT</th><th>REASON</th><th>P&amp;L</th></tr>`+histRows.map(x=>{
+   const et=x.exit_time||x.exit_date||"";
+   const name=esc(x.contract||x.symbol);
+   const net=x.net!=null?x.net:x.pnl, rr=x.R!=null?x.R:x.r;
+   return `<tr><td class="histName">${name}<div class="dm">${esc(et)}</div></td><td>${x.qty!=null?x.qty:"—"}</td><td>${x.exit_premium!=null?f(x.exit_premium):"—"}</td><td class="dm histWhy">${esc(x.exit_reason||x.reason||"")}</td><td class="histPnl ${cl(net)}">₹${sg(net)}<span class="histR"> ${rr!=null?sg(rr)+"R":""}</span></td></tr>`;
+  }).join("")+`</table></div>`;
+ }
+ box.innerHTML=h;
 }
 function renderPaper(){
  const p=(D&&D.paper)||{},d=p.day||{},t=p.total||{},u=p.unrealized||{};
@@ -800,15 +854,7 @@ function showTab(id){
  if(id==="heat"||id==="portfolio"){ try{ if(id==="heat") renderHeat(); if(id==="portfolio") renderPortfolio(); }catch(e){} }
  requestAnimationFrame(()=>renderChart(bars));
 }
-function renderBtstLocal(){
- const box=$("btst")||$("btstSlot"); if(!box) return;
- const b=(D&&D.state&&D.state.btst)||{}, p=b.picks||[];
- const n=$("btstN"); if(n) n.textContent=(b.date||"")+(b.as_of?" · "+b.as_of+" IST":"");
- box.innerHTML=p.length?p.map(x=>{const lg=/LONG/i.test(x.side||""),q=L[x.symbol];return `<div class="card"><div class="h"><span><b class="${lg?"g":"p"}">${lg?"▲":"▼"} ${esc(x.symbol)}</b> <span class="badge ${lg?"g":"p"}" style="border:1px solid currentColor">${esc(x.side||"")} · ${esc(x.grade||"")}</span></span><span>${q?f(q.ltp):""}</span></div>
- <div class="lv"><span class="m">E <b class="dm">${esc(x.entry)}</b></span><span class="m">SL <b class="p">${esc(x.sl)}</b></span><span class="m">T1 <b class="g">${esc(x.t1)}</b></span>${x.t2?`<span class="m">T2 <b class="g">${esc(x.t2)}</b></span>`:""}</div>
- ${x.reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(x.reason)}</div>`:""}
- <div class="btns"><a class="btn" href="${lc(x.symbol)}" target="${ON_PUBLIC?"_self":"_blank"}">Live Chart</a><a class="btn" href="${tv(x.symbol)}" target="_blank" rel="noreferrer">TradingView</a></div></div>`}).join(""):'<div class="m">Aaj koi BTST/STBT pick nahi.</div>';
-}
+function renderBtstLocal(){ renderBtst(); }
 function iceHoldings(sig){
  const rows=((sig&&sig.rows)||[]).filter(r=>!r.backfill && /^(OPEN|T1_DONE|CLOSED)$/.test(String(r.status||"")));
  return rows.map(r=>{
@@ -884,7 +930,7 @@ function iceBooksSum(){
 }
 function mainPageBooks(){
  /* Single source for the Portfolio tab: same objects the main tabs already render
-    (D.paper, watch_long, iceberg signals, variants MECH). Not a separate frozen snapshot. */
+    (D.paper, watch_long, iceberg signals, variants MECH, btst_paper). Not a separate frozen snapshot. */
  const p=(D&&D.paper)||{}, d=p.day||{}, tot=p.total||{};
  const w=(D&&D.state&&D.state.watch_long)||(D&&D.watch_long)||{};
  const wd=w.day||{}, wt=w.total||{};
@@ -892,16 +938,17 @@ function mainPageBooks(){
  const vbooks=(((D&&D.state&&D.state.variants)||(D&&D.variants)||{}).books)||[];
  const mech=(Array.isArray(vbooks)?vbooks:[]).find(b=>/MECH/i.test(String((b&&b.name)||(b&&b.book)||"")))||{};
  const md=mech.day||{}, mt=mech.total||{};
- const sumD=(Number(d.pnl)||0)+(Number(wd.pnl)||0)+ice.dayP+(Number(md.pnl)||0);
- const sumA=(Number(tot.pnl)||0)+(Number(wt.pnl)||0)+ice.allP+(Number(mt.pnl)||0);
- const sumDR=(Number(d.r)||0)+(Number(wd.r)||0)+ice.dayR+(Number(md.r)||0);
- const sumAR=(Number(tot.r)||0)+(Number(wt.r)||0)+ice.allR+(Number(mt.r)||0);
- return {p,d,t:tot,w,wd,wt,ice,mech,md,mt,sumD,sumA,sumDR,sumAR};
+ const bt=btstBook();
+ const sumD=(Number(d.pnl)||0)+(Number(wd.pnl)||0)+ice.dayP+(Number(md.pnl)||0)+bt.dayP;
+ const sumA=(Number(tot.pnl)||0)+(Number(wt.pnl)||0)+ice.allP+(Number(mt.pnl)||0)+bt.allP;
+ const sumDR=(Number(d.r)||0)+(Number(wd.r)||0)+ice.dayR+(Number(md.r)||0)+bt.dayR;
+ const sumAR=(Number(tot.r)||0)+(Number(wt.r)||0)+ice.allR+(Number(mt.r)||0)+bt.allR;
+ return {p,d,t:tot,w,wd,wt,ice,mech,md,mt,bt,sumD,sumA,sumDR,sumAR};
 }
 function renderPortfolio(){
  const root=$("portfolioBody"); if(!root) return;
  const b=mainPageBooks();
- const p=b.p,d=b.d,t=b.t,w=b.w,wd=b.wd,wt=b.wt,ice=b.ice,mech=b.mech,md=b.md,mt=b.mt;
+ const p=b.p,d=b.d,t=b.t,w=b.w,wd=b.wd,wt=b.wt,ice=b.ice,mech=b.mech,md=b.md,mt=b.mt,bt=b.bt||btstBook();
  const sig=(D&&D.iceberg&&D.iceberg.signals)||{};
  const aaRows=aaHoldings(p), iceRows=iceHoldings(sig);
  const aaOpen=aaRows.filter(r=>r.status==="OPEN").length, iceOpen=iceRows.filter(r=>r.status!=="CLOSED").length;
@@ -919,9 +966,12 @@ function renderPortfolio(){
  setH("pfMechDay",`<b class="${cl(md.pnl)}">₹${sg(md.pnl,0)} / ${sg(md.r)}R</b>`);
  setH("pfMechAll",`<b class="${cl(mt.pnl)}">₹${sg(mt.pnl,0)} / ${sg(mt.r)}R net</b>`);
  setT("pfMechMeta",`gross ₹${sg(mt.pnl_gross||md.pnl_gross,0)} · ${(mt.charges??md.charges)!=null?`charges ₹${sg(mt.charges??md.charges,0)} · slippage ₹${sg(mt.slippage??md.slippage,0)}`:`costs ₹${sg(mt.costs||md.costs,0)}`} · ${mt.trades||0} trades · open ${(mech.open||[]).length} · same as Variants MECH card`);
+ setH("pfBtstDay",`<b class="${cl(bt.dayP)}">₹${sg(bt.dayP)} / ${sg(bt.dayR)}R</b>`);
+ setH("pfBtstAll",`<b class="${cl(bt.allP)}">₹${sg(bt.allP)} / ${sg(bt.allR)}R net</b>`);
+ setT("pfBtstMeta",`gross ₹${sg(bt.gross)} · charges ₹${sg(bt.charges)} · slippage ₹${sg(bt.slippage)} · ${bt.allT||0} trades · open ${(bt.open||[]).length} · same as BTST tab`);
  setH("pfSumDay",`<b class="${cl(b.sumD)}">₹${sg(b.sumD,0)} / ${sg(b.sumDR,2)}R</b>`);
  setH("pfSumAll",`<b class="${cl(b.sumA)}">₹${sg(b.sumA,0)} / ${sg(b.sumAR,2)}R</b>`);
- setT("pfSumMeta",`A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net, taken from the main-page book totals in this same refresh. CAP* empty. Broker holdings not included. A/A++iceberg only ₹${sg((Number(t.pnl)||0)+ice.allP,0)}.`);
+ setT("pfSumMeta",`A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net + BTST net, taken from the main-page book totals in this same refresh. CAP* empty. Broker holdings not included. A/A++iceberg only ₹${sg((Number(t.pnl)||0)+ice.allP,0)}.`);
  const th=`<tr><th>BOOK</th><th>SYMBOL</th><th>SIDE</th><th>INSTRUMENT</th><th>QTY</th><th>AVG</th><th>LTP / EXIT</th><th>₹ P&amp;L</th><th>R</th><th>STATUS</th></tr>`;
  const aaTable=root.querySelector("#pfAaTable");
  if(aaTable) aaTable.innerHTML=`<div class="histWrap"><table class="histTbl">${th}`+(aaRows.map(holdRow).join("")||`<tr><td colspan="10" class="m">no A/A+ paper rows today</td></tr>`)+`</table></div>`;

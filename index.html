@@ -111,8 +111,8 @@
      <div class="scroll" id="newsMoversWrap"><div id="newsMovers"></div></div>
     </div>
     <div class="tabpane panel" data-tab="btst" id="btstP">
-     <div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div>
-     <div class="panel" id="btstP" style="flex:0 0 auto;margin-top:6px"><div class="lbl"><span>BTST / STBT</span><span id="btstN"></span></div><div class="scroll" id="btst"></div></div>
+     <div class="lbl"><span>BTST / STBT · paper</span><span id="btstN"></span></div>
+     <div class="scroll" id="btst"></div>
     </div>
     <div class="tabpane panel" data-tab="heat" id="heatP">
      <div class="lbl"><span><span id="heatT">NIFTY 50 HEAT</span> <span class="dm hs">· vs prev close</span> <button id="heatBtn" class="hbtn">SECTOR</button></span><span id="breadth"></span></div>
@@ -149,11 +149,17 @@
         <div class="m">ALL <span id="pfMechAll">—</span></div>
         <div class="pfNote" id="pfMechMeta"></div>
        </div>
+       <div class="pfCard" id="pfBtst">
+        <h3>BTST / STBT · paper (net of costs)</h3>
+        <div class="m">TODAY <span id="pfBtstDay">—</span></div>
+        <div class="m">ALL <span id="pfBtstAll">—</span></div>
+        <div class="pfNote" id="pfBtstMeta"></div>
+       </div>
        <div class="pfCard">
         <h3>COMBINED (all paper books, not one strategy)</h3>
         <div class="m">DAY <span id="pfSumDay">—</span></div>
         <div class="m">TOTAL <span id="pfSumAll">—</span></div>
-        <div class="pfNote" id="pfSumMeta">A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net. CAP* shadows are empty. Broker holdings are not in this sum.</div>
+        <div class="pfNote" id="pfSumMeta">A/A+ + WATCH-LONG + ICEBERG (BASE+A2+C) + MECH net + BTST net. CAP* shadows are empty. Broker holdings are not in this sum.</div>
        </div>
       </div>
       <div class="pfBooks">
