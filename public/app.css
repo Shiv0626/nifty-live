@@ -146,6 +146,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)
 .histTbl td.histWhy{white-space:normal;overflow-wrap:anywhere;max-width:28vw}
 .histTbl th:last-child,.histTbl td.histPnl{position:sticky;right:0;background:var(--panel,#131722);white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;text-align:right;box-shadow:-8px 0 8px -8px #0008;min-width:7.5em}
 .histTbl .histR{display:inline-block;margin-left:4px;font-weight:700}
+.closedPnl{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;margin:1px 0 4px;font-size:13px;overflow:visible}
+#setups .card.closed .h{flex-wrap:wrap;gap:2px 8px}
 #paper table,#paperWL table{font-size:10px}
 #paper .scroll,#paperWL,#pfAaTable,#pfIceTable{overflow-x:auto;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
 

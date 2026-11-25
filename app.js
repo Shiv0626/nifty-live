@@ -349,8 +349,8 @@ function setupCard(s,watch){
   const badge=`<span class="badge dm" style="border:1px solid currentColor">CLOSED</span>`;
   const pnlH=pnl==null?"":` <b class="${cl(pnl)}">₹${sg(pnl,0)}${R!=null?" "+sg(R)+"R":""}</b>`;
   const qty=s.qty!=null?s.qty:rec.qty;
-  return `<div class="card closed"><div class="h"><span><b class="${sgn>0?"g":"p"}">${sgn>0?"▲":"▼"} ${esc(s.symbol)}</b> ${badge} <span class="m">${esc(et||s.time||"")}</span></span>
- <span>${exit!=null?`<span class="m">exit ${f(exit)}</span>`:""}${pnlH}</span></div>
+  return `<div class="card closed"><div class="h"><span><b class="${sgn>0?"g":"p"}">${sgn>0?"▲":"▼"} ${esc(s.symbol)}</b> ${badge} <span class="m">${esc(et||s.time||"")}</span></span></div>
+ <div class="closedPnl">${exit!=null?`<span class="m">exit ${f(exit)}</span>`:""}${pnlH}</div>
  <div class="lv"><span class="m">E <b class="dm">${f(s.fill!=null?s.fill:(rec.fill!=null?rec.fill:s.entry))}</b></span>${qty!=null?`<span class="m">QTY <b class="dm">${esc(String(qty))}</b></span>`:""}<span class="m">SL <b class="p">${f(s.sl)}</b></span><span class="m">T1 <b class="g">${f(s.t1)}</b></span>${s.t2?`<span class="m">T2 <b class="g">${f(s.t2)}</b></span>`:""}</div>
  ${(o=>o&&o.contract?`<div class="lv" style="margin-top:2px"><span class="m">OPT <b class="a">${esc(o.contract)}</b></span></div>`:"")(s.option||{contract:s.contract||rec.contract})}
  ${reason?`<div class="dm" style="font-size:11px;margin-bottom:4px;white-space:normal">${esc(reason)}</div>`:""}
