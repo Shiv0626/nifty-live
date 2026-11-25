@@ -1,0 +1,6 @@
+/* Variants tab cards + variant.html. Reuses iceberg card rhythm. Mobile-first. */
+a.iceVarCard.shadow{border-style:dashed;border-color:#8a6a2a;box-shadow:inset 3px 0 0 #F5A623}
+a.iceVarCard.shadow .iceVarH b{color:#F5A623}
+.iceVarShadow{display:inline-block;margin-top:2px;padding:1px 6px;border:1px solid #F5A623;border-radius:4px;color:#F5A623;font-size:10px;letter-spacing:.04em}
+.iceVarOfficial{display:inline-block;margin-top:2px;padding:1px 6px;border:1px solid #3DDBD9;border-radius:4px;color:#3DDBD9;font-size:10px;letter-spacing:.04em}
+.iceVarGrid.varGrid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}

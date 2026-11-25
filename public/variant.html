@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#131722"/>
+<title>Variant · Public · paper</title>
+<link rel="stylesheet" href="app.css?v=3"/>
+<link rel="stylesheet" href="iceberg-page.css?v=1"/>
+<link rel="stylesheet" href="variant-page.css?v=1"/>
+</head>
+<body class="icePage">
+<div id="app">
+ <div class="tvbar">
+  <a href="./?tab=variants" id="backDash">← Dashboard</a>
+  <span class="ttl">VARIANT · <span id="varName">AA</span> · Public</span>
+  <span class="srcb warn" id="srcBadge">● GitHub data load ho raha hai…</span>
+ </div>
+ <div id="varPage">
+  <div class="m" id="varDesc">PAPER ONLY · paper/demo trading only, not advice</div>
+  <div class="icePageStats" id="stats"></div>
+  <div class="icePageChart">
+   <div class="lbl"><span id="chartTitle">VARIANT · 5m</span>
+    <select id="symSel" aria-label="Symbol"></select>
+   </div>
+   <div id="iceChart"></div>
+  </div>
+  <section class="icePageSec">
+   <h2>WATCH · armed / awaiting trigger</h2>
+   <div id="watch"></div>
+  </section>
+  <section class="icePageSec">
+   <h2>LIVE / TRADED · entered (status only, no open P&amp;L)</h2>
+   <div id="live"></div>
+  </section>
+  <section class="icePageSec">
+   <h2>CLOSED TODAY · booked P&amp;L</h2>
+   <div id="closed"></div>
+  </section>
+  <div class="foot"><span>GitHub data ~30s · IST · paper/demo only</span></div>
+ </div>
+</div>
+<script src="nl-data.js?v=4"></script>
+<script src="../lightweight-charts.standalone.production.js"></script>
+<script src="variant-page.js?v=1"></script>
+</body></html>
