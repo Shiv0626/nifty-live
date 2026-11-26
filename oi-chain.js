@@ -23,6 +23,7 @@ function pspan(p,extra){if(p==null||isNaN(p))return "";return '<span class="oc-p
 function buildupJs(dl,doi){if(dl==null||doi==null||!dl||!doi)return null;return dl>0?(doi>0?"Long build-up":"Short covering"):(doi>0?"Short build-up":"Long unwinding")}
 var BU={"Long build-up":["LB","oc-lb"],"Short build-up":["SB","oc-sb"],"Short covering":["SC","oc-sc"],"Long unwinding":["LU","oc-lu"]};
 function bu(b){if(!b||!BU[b])return '<span class="oc-0">—</span>';return '<span class="oc-bu '+BU[b][1]+'" title="'+esc(b)+'"><b class="oc-bus">'+BU[b][0]+'</b><span class="oc-bul">'+esc(b)+'</span></span>'}
+function istS(ts){if(!ts)return "—";var d=new Date(ts);if(isNaN(d))return esc(ts);return d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"Asia/Kolkata"})}
 function ist(ts){if(!ts)return "—";var d=new Date(ts);if(isNaN(d))return esc(ts);return d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Kolkata"})+" IST"}
 function dlabel(iso){if(!iso)return "";var d=new Date(iso+"T00:00:00+05:30");return d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",timeZone:"Asia/Kolkata"})}
 
@@ -86,7 +87,7 @@ function butterfly(ex,idx,W,mode){
 /* ---------- intraday: spot + total CE/PE OI change + PCR ---------- */
 function daychart(idx,W){
  var S=(idx.series||[]).filter(function(p){return p&&p.t});
- if(S.length<2)return '<div class="oc-empty">Din ka OI chart market khulne ke kuch minute baad banega (har 2 min point).</div>';
+ if(S.length<2)return '<div class="oc-empty">Din ka OI chart market khulne ke kuch minute baad banega (har 1 min point).</div>';
  var narrow=W<560,L=narrow?44:56,R=narrow?40:50,T=22,H1=narrow?110:130,G=26,H2=narrow?150:180,B=24,H=T+H1+G+H2+B,iw=W-L-R;
  function mins(t){var a=t.split(":");return +a[0]*60+(+a[1])}
  var ss=idx.sess_start||"09:15",se=idx.sess_end||"15:30",t0=mins(ss),t1=Math.max(mins(se),mins(S[S.length-1].t));
@@ -207,20 +208,41 @@ function table(ex){
  return h.join("");
 }
 
+/* 26 Nov: fast path. Private page with a working tunnel reads /api/oi_chain straight from the box
+   (WebSocket OI, rebuilt every ~5 s); otherwise the GitHub bundle (~30 s buckets). Polls every 5 s. */
+var FAST={oc:null,at:0,busy:false},LASTKEY="";
+function cur(){var b=window.NL&&NL.bundle,g=b&&b.oi_chain,f=FAST.oc;
+ if(f&&f.indices&&Date.now()-FAST.at<30000&&(!g||!g.updated||Date.parse(f.updated)>=Date.parse(g.updated)))return {oc:f,via:"tunnel"};
+ return {oc:g,via:"github"}}
+function agoS(iso){var t=Date.parse(iso);return isNaN(t)?null:Math.max(0,Math.round((Date.now()-t)/1000))}
+function ageTxt(s){return s==null?"—":s<90?s+"s pehle":Math.round(s/60)+" min pehle"}
+function visible(){return [].some.call(document.querySelectorAll("[data-oichain]"),function(e){return e.offsetParent!==null})}
+function maybeRender(){var c=cur(),oc=c.oc,k=(oc&&oc.updated||"")+"|"+c.via;
+ if(k!==LASTKEY){render();return}
+ document.querySelectorAll(".oc-age").forEach(function(e){e.textContent=ageTxt(agoS(oc&&oc.updated))})}
+function pull(){
+ if(document.hidden||!window.NL||!visible())return;
+ var st=NL.status?NL.status():{};
+ if(st.mode==="tunnel"&&NL.api&&!FAST.busy){FAST.busy=true;
+  Promise.resolve(NL.api("/api/oi_chain")).then(function(j){if(j&&j.indices){FAST.oc=j;FAST.at=Date.now()}}).catch(function(){})
+   .then(function(){FAST.busy=false;maybeRender()})}
+ else Promise.resolve(NL.loadBundle()).catch(function(){}).then(maybeRender)}
 function render(){
- var b=window.NL&&NL.bundle,oc=b&&b.oi_chain,els=document.querySelectorAll("[data-oichain]");
+ var cv=cur(),oc=cv.oc,els=document.querySelectorAll("[data-oichain]");
+ LASTKEY=(oc&&oc.updated||"")+"|"+cv.via;
  els.forEach(function(el){
-  if(!oc||!oc.indices){var pub=/\/public\//.test(location.pathname)?"":' Key wala data nahi khula to <a class="b" href="public/oi.html">public OI page</a> kholiye.';el.innerHTML='<div class="oc-empty">OI data abhi load ho raha hai… (market time mein har 2 min update).'+pub+'</div>';return}
+  if(!oc||!oc.indices){var pub=/\/public\//.test(location.pathname)?"":' Key wala data nahi khula to <a class="b" href="public/oi.html">public OI page</a> kholiye.';el.innerHTML='<div class="oc-empty">OI data abhi load ho raha hai… (market time mein har ~5 s update).'+pub+'</div>';return}
   var names=(oc.order||["NIFTY","SENSEX","GOLDM"]).filter(function(n){return oc.indices[n]});Object.keys(oc.indices).forEach(function(n){if(names.indexOf(n)<0)names.push(n)});if(names.indexOf(ST.idx)<0)ST.idx=names[0];
   var idx=oc.indices[ST.idx];idx._name=ST.idx;var exs=idx.expiries||[];if(ST.exp>=exs.length)ST.exp=0;var ex=exs[ST.exp]||{};ex._spot=ex.spot!=null?ex.spot:idx.spot;
   var W=Math.max(300,Math.min(1100,(el.clientWidth||window.innerWidth||360)-2));
   var live=idx.market!=null?idx.market:oc.market,mkt=ST.idx==="GOLDM"?"MCX":"Market";
-  var mk=live?'<span class="oc-live">● LIVE · har 2 min</span>':'<span class="oc-closed">'+mkt+' band · last session '+esc(dlabel(idx.session_date||oc.session_date))+' ka closing OI</span>';
+  var srcTxt=(cv.via==="tunnel"?"direct box feed":"GitHub copy ~30s")+(idx.src==="ws"?" · Angel WebSocket":idx.src==="rest"?" · REST fallback":"");
+  var mk=live?'<span class="oc-live">● LIVE</span> <span class="oc-0">'+srcTxt+'</span>':'<span class="oc-closed">'+mkt+' band · last session '+esc(dlabel(idx.session_date||oc.session_date))+' ka closing OI</span>';
   var uline=(idx.unit||ST.idx==="GOLDM")?'<div class="oc-units">'+esc(idx.label||ST.idx)+' · lot '+esc(ex.lot||"—")+(idx.lot_unit?" ("+esc(idx.lot_unit)+")":"")+' · '+esc(idx.unit||"OI as Angel reports")+(idx.price_unit?" · price "+esc(idx.price_unit):"")+(idx.sess_start?" · session "+esc(idx.sess_start)+"–"+esc(idx.sess_end)+" IST":"")+'</div>':"";
   var h=[];
   h.push('<div class="oc-bar"><div class="oc-seg">'+names.map(function(n){return '<button type="button" data-oi-idx="'+n+'" class="'+(n===ST.idx?"on":"")+'">'+(n==="GOLDM"?"GOLDM <small>MCX</small>":n)+'</button>'}).join("")+'</div>');
   h.push('<div class="oc-seg">'+exs.map(function(e,i){return '<button type="button" data-oi-exp="'+i+'" class="'+(i===ST.exp?"on":"")+'">'+esc(dlabel(e.expiry))+(i===0?" · near":"")+'</button>'}).join("")+'</div>');
-  h.push('<div class="oc-meta">'+mk+' · '+ist(oc.updated)+'</div></div>');
+  h.push('<div class="oc-meta">'+mk+' · updated '+istS(oc.updated)+' IST · <b class="oc-age">'+ageTxt(agoS(oc.updated))+'</b></div></div>');
   var addp=function(side,k){var r=(ex.rows||[]).filter(function(x){return x.k===k})[0],l=r&&r[side];if(!l)return "";var dd=spc(l.doip,l.doi,l.oi);return dd==null?"":'(+'+fmt(l.doi).replace(/^[+]/,"")+' · '+pspan(dd)+')'};
   var spotCard=function(){var sv=ex.spot!=null?ex.spot:idx.spot,pc=ex.spot!=null?ex.spot_pc:idx.spot_pc,ch=(sv!=null&&pc)?sv-pc:idx.spot_chg;
     var lab=ST.idx==="GOLDM"?esc(ex.fut||idx.spot_label||"GOLDM FUT")+" (underlying)":esc(ST.idx)+" SPOT";
@@ -266,7 +288,8 @@ document.addEventListener("click",function(e){var t=e.target.closest&&e.target.c
 var rt=null;window.addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(render,150)});
 document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest('.tabbtn[data-tab="oi"]');if(t)setTimeout(render,30)});
 function boot(){if(!window.NL){setTimeout(boot,200);return}NL.onChange(render);render();
- if(document.body.hasAttribute("data-oi-standalone")){var tick=function(){Promise.resolve(NL.loadBundle()).catch(function(){}).then(render)};tick();setInterval(tick,30000)}}
+ pull();setInterval(pull,5000);
+ document.addEventListener("visibilitychange",function(){if(!document.hidden)pull()})}
 window.OIChain={render:render};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })();
