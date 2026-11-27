@@ -44,7 +44,7 @@
    <nav class="tabs" id="tabs">
     <button type="button" class="tabbtn on" data-tab="aa">A/A+ Setups</button>
     <button type="button" class="tabbtn" data-tab="variants">Variants</button>
-    <button type="button" class="tabbtn" data-tab="expiry">Expiry</button>
+    <button type="button" class="tabbtn" data-tab="expiry">Daily Index</button>
     <button type="button" class="tabbtn" data-tab="iceberg">Iceberg</button>
     <button type="button" class="tabbtn" data-tab="watch">WATCH</button>
     <button type="button" class="tabbtn" data-tab="news">News</button>
@@ -86,11 +86,11 @@
      <div class="scroll" id="varTrades"></div>
     </div>
     <div class="tabpane panel" data-tab="expiry" id="expiryP">
-     <div class="lbl"><span>EXPIRY DEMO BOOKS · PAPER ONLY · EXPIRY_BASE / EXPIRY_BASE_OIVOL (SHADOW) / EXPIRY_IMP / EXPIRY_SCALP1M</span><span class="info">A/A+ me count nahi · real orders kabhi nahi · shadow booked P&amp;L me nahi</span></div>
+     <div class="lbl"><span>DAILY INDEX DEMO BOOKS · PAPER ONLY · INDEX_BASE / INDEX_BASE_OIVOL (SHADOW) / INDEX_IMP / INDEX_SCALP1M</span><span class="info">A/A+ me count nahi · real orders kabhi nahi · shadow booked P&amp;L me nahi</span></div>
      <script type="application/json" id="expiryOiVolNoteSrc">{"status_base": "BASE: original 19 Nov rules (OI/volume only logged, not gating)", "status_shadow": "Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L", "text": "23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)", "label": "backtest, not booked", "kind": "backtest_note", "not_booked": true, "exclude_from_pnl_audit": true}</script>
      <div class="varBox on" id="expOiVolTop" style="margin:4px 0 8px;border-style:dashed;border-color:#F5A623;background:#1a1408;cursor:default">
       <h4 style="white-space:normal;overflow:visible;text-overflow:unset;color:#F5A623">BASE vs SHADOW · OI/volume · paper, not in booked P&amp;L</h4>
-      <div class="stats" id="expOiVolStatus">BASE: original 19 Nov rules (OI/volume only logged, not gating)<br>Shadow: EXPIRY_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L</div>
+      <div class="stats" id="expOiVolStatus">BASE: original 19 Nov rules (OI/volume only logged, not gating)<br>Shadow: INDEX_BASE_OIVOL — same rules + OI/volume gate, paper, not in booked P&L</div>
       <div class="stats" id="expOiVolNote">23 Nov missed trades unchanged at +₹13,275; the gate would have blocked two 15:03 trades (BANKNIFTY, NIFTY) that hit SL at −1R each (index path, no ₹); one day only, sample small (backtest, not booked)</div>
      </div>
      <div class="scroll" id="expiryBox"></div>
@@ -238,5 +238,5 @@
 <script src="nl-data.js?v=5"></script>
 <script src="iceberg-page.js?v=3"></script>
 <script src="variant-page.js?v=3"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 <script src="oi-chain.js?v=7"></script></body></html>

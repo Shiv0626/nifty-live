@@ -494,6 +494,34 @@ function backtestNoteText(){
  try{const e=$("backtestNoteSrc"); if(e){const j=JSON.parse(e.textContent); if(j&&j.text) return String(j.text)}}catch(err){}
  return "1 minute pullback-break backtest, 4 to 23 November: +₹24,724, 62.5% win rate (backtest, not booked)";
 }
+const DAILY_INDEX_BOOK_LABELS={
+ EXPIRY_BASE:"INDEX_BASE",
+ EXPIRY_IMP:"INDEX_IMP",
+ EXPIRY_SCALP1M:"INDEX_SCALP1M",
+ EXPIRY_BASE_OIVOL:"INDEX_BASE_OIVOL (Shadow)"
+};
+function dailyIndexNote(note){
+ return String(note||"")
+  .replace(/EXPIRY books \(index options, real Angel premium, fresh tick or skip\)/g,
+           "Daily Index books (nearest active expiry, 0 DTE on expiry day; index options, real Angel premium, fresh tick or skip)")
+  .replace(/EXPIRY books/g,"Daily Index books (nearest active expiry, 0 DTE on expiry day)");
+}
+function dailyIndexShadowStatus(s){
+ return String(s||"").replace(/\bEXPIRY_BASE_OIVOL\b/g,"INDEX_BASE_OIVOL");
+}
+function dailyIndexBookLabel(b){
+ const key=String((b&&(b.name||b.book))||"");
+ const mapped=DAILY_INDEX_BOOK_LABELS[key];
+ if(!mapped) return String((b&&(b.label||b.name))||key);
+ let rest=String((b&&b.label)||"");
+ if(rest.indexOf(key)===0) rest=rest.slice(key.length).replace(/^\s*·\s*/,"");
+ rest=rest.replace(/\s*·\s*SHADOW(?:\s*\(not in booked_net\))?/gi,"")
+          .replace(/^SHADOW\s*·\s*/i,"")
+          .replace(/^\s*·\s*/,"").replace(/\s*·\s*$/,"").trim();
+ if(/not in booked_net/i.test(String((b&&b.label)||"")) && !/not in booked_net/i.test(rest))
+  rest=rest?rest+" · not in booked_net":"not in booked_net";
+ return rest?(mapped+" · "+rest):mapped;
+}
 function expiryOiVolNote(){
  const n=(D&&D.expiry_oivol_note)||(D&&D.state&&D.state.expiry_oivol_note)||{};
  if(n&&(n.text||n.status_base)) return n;
@@ -506,7 +534,7 @@ function expiryOiVolNote(){
 function renderExpiryOiVolNote(){
  const j=expiryOiVolNote();
  const st=$("expOiVolStatus"), nt=$("expOiVolNote");
- if(st) st.innerHTML=esc(j.status_base||"")+"<br>"+esc(j.status_shadow||"");
+ if(st) st.innerHTML=esc(j.status_base||"")+"<br>"+esc(dailyIndexShadowStatus(j.status_shadow||""));
  if(nt) nt.textContent=j.text||"";
 }
 function istDate(){
@@ -647,28 +675,28 @@ function renderExpiry(){
  try{renderExpiryOiVolNote()}catch(e){console.error(e)}
  const el=$("expiryBox"); if(!el) return;
  const X=(D&&D.state&&D.state.expiry)||null;
- if(!X){el.innerHTML='<div class="m">Expiry engine data abhi nahi aaya.</div>';return}
+ if(!X){el.innerHTML='<div class="m">Daily Index engine data abhi nahi aaya.</div>';return}
  const EXP_LIVEPNL=false; /* user rule 11 Nov: no open/unrealised P&L on the GitHub page */
  const LIVEPNL=(typeof EXP_LIVEPNL!=="undefined")?EXP_LIVEPNL:true;
  const nm=c=>String(c||"").replace(/^(SENSEX|BANKEX)\d{2}[A-Z0-9]\d{2}(\d+)(CE|PE)$/,"$1 $2$3").replace(/^([A-Z]+)\d{2}[A-Z]{3}\d{2}(\d+)(CE|PE)$/,"$1 $2$3");
  const md=X.mode_today||{};
- let h=`<div class="aaSub">${esc(X.note||"")} · updated ${esc(String(X.updated||"").slice(11,19))} IST · mode today: <b>${esc(md.mode||"rules")}</b>${md.pdh_flip?" · PDH flip ON":""}${md.scalp1m_bull?" · 1m bull scalp ON":""}</div>`;
+ let h=`<div class="aaSub">${esc(dailyIndexNote(X.note||""))} · updated ${esc(String(X.updated||"").slice(11,19))} IST · mode today: <b>${esc(md.mode||"rules")}</b>${md.pdh_flip?" · PDH flip ON":""}${md.scalp1m_bull?" · 1m bull scalp ON":""}</div>`;
  // 23 Nov 2026 (user voice ~18:44 IST): missed expiry setups (engine down) — hypothetical, NOT booked; driven by expiry/data/missed_pnl.json via engine summary
  try{const DT=X.day_totals||{},MPa=(X.missed_pnl||[]);if(MPa.length){const MPc=MPa.filter(m=>!m.excluded&&!m.unpriced);const mn=(DT.missed_net!=null)?DT.missed_net:MPc.reduce((a,m)=>a+(+m.net||0),0);const ex=MPa.length-MPc.length;
-  h+=`<div class="varBox" id="expMissedLine" style="margin-top:6px;border-style:dashed"><div class="kv"><span>BOOKED expiry today <b class="${cl(DT.booked_net||0)}">₹${sg(DT.booked_net||0,0)}</b></span><span>${esc(DT.missed_label||"Missed (engine down, not booked)")}: <b class="${cl(mn)}">₹${sg(mn,0)}</b> (${MPc.length} setups${ex?` counted · ${ex} excluded by engine rules`:""})</span><span class="dm">${esc(DT.date||"")} · hypothetical, real Angel 1m option prices, after charges · NOT in booked P&amp;L</span></div></div>`;
+  h+=`<div class="varBox" id="expMissedLine" style="margin-top:6px;border-style:dashed"><div class="kv"><span>BOOKED Daily Index today <b class="${cl(DT.booked_net||0)}">₹${sg(DT.booked_net||0,0)}</b></span><span>${esc(DT.missed_label||"Missed (engine down, not booked)")}: <b class="${cl(mn)}">₹${sg(mn,0)}</b> (${MPc.length} setups${ex?` counted · ${ex} excluded by engine rules`:""})</span><span class="dm">${esc(DT.date||"")} · hypothetical, real Angel 1m option prices, after charges · NOT in booked P&amp;L</span></div></div>`;
   h+=`<table><tr><th>MISSED (not booked)</th><th>TRIG</th><th>ENTRY</th><th>EXITS</th><th>NET</th><th>STATUS</th></tr>`+MPa.map(m=>`<tr><td><b>${esc(nm(m.contract))}</b><div class="dm">${esc(m.index||"")} ${esc(m.tf||"")} ${esc(m.setup||"")}</div></td><td>${esc(m.trigger_time||"")}</td><td>${m.entry!=null?f(m.entry):"—"}</td><td class="dm" style="white-space:normal">${(m.legs||[]).map(l=>`${esc(l.lot)} ${esc(l.time)} @${f(l.price)}`).join(" · ")}</td><td><b class="${cl(m.net)}">${m.net!=null?"₹"+sg(m.net,0):"—"}</b></td><td class="dm" style="white-space:normal">${m.unpriced?esc("unpriced: "+m.unpriced):(m.excluded?esc("excluded: "+(m.exclude_reason||"")):"counted")}</td></tr>`).join("")+`</table>`;}}catch(e){console.error(e)}
  const lv=X.levels||{};
  h+=`<table><tr><th>INDEX</th><th>EXPIRY</th><th>LTP</th><th>PDH</th><th>PDL</th><th>PDC</th><th>STATUS</th><th>CONTEXT (extra)</th></tr>`+Object.values(lv).map(v=>{const ev=(X.events||{})[v.index]||{};const sp=ev.spot;const pos=sp==null?"":(sp>v.pdh?'<span class="g">above PDH</span>':sp<v.pdl?'<span class="p">below PDL</span>':(sp>v.pdc?"PDC–PDH":"PDL–PDC"));return `<tr><td><b>${esc(v.index)}</b></td><td>${esc(v.expiry)}</td><td><b>${sp!=null?f(sp):"—"}</b> ${pos}</td><td>${f(v.pdh)}</td><td>${f(v.pdl)}</td><td>${f(v.pdc)}</td><td>${esc(v.status)} (${esc(v.session)})</td><td class="dm" style="white-space:normal">wk H ${f((v.extra||{}).week_high)} / L ${f((v.extra||{}).week_low)} · Dow ${esc((v.extra||{}).dow_trend_daily||"")} · ${esc((v.extra||{}).crt_context||"")}</td></tr>`}).join("")+`</table>`;
  const oi=X.oi||{};
  Object.entries(oi).forEach(([k,s])=>{if(!s)return;h+=`<div class="aaSub" style="margin-top:6px">OI · ${esc(k)} ATM ${esc(s.atm)} · PCR(ATM±2) <b>${s.pcr!=null?s.pcr:"—"}</b> · CE OI ${f(s.ce_oi,0)} · PE OI ${f(s.pe_oi,0)} · ${esc(String(s.t||"").slice(11,19))}</div><table><tr>`+Object.entries(s.legs||{}).map(([kk,v])=>`<td class="dm">${esc(kk)}<br><b>${f(v.ltp)}</b><br>OI ${f(v.oi,0)}</td>`).join("")+`</tr></table>`});
  const jn=expiryOiVolNote();
- h+=`<div class="varBox on" id="expOiVolBanner" style="margin-top:8px"><h4>BASE vs SHADOW · OI/volume</h4><div class="dm" style="white-space:normal">${esc(jn.status_base||"")}</div><div class="dm" style="white-space:normal">${esc(jn.status_shadow||"")}</div><div class="btxt"><b>${esc(jn.label||"backtest, not booked")}</b> — ${esc(jn.text||"")}</div></div>`;
+ h+=`<div class="varBox on" id="expOiVolBanner" style="margin-top:8px"><h4>BASE vs SHADOW · OI/volume</h4><div class="dm" style="white-space:normal">${esc(jn.status_base||"")}</div><div class="dm" style="white-space:normal">${esc(dailyIndexShadowStatus(jn.status_shadow||""))}</div><div class="btxt"><b>${esc(jn.label||"backtest, not booked")}</b> — ${esc(jn.text||"")}</div></div>`;
  const books=ensureExpiryOiVolBook(X.books||[], jn);
  for(const b of books){
   const d=b.day||{},t=b.total||{};
   const isSh=!!(b.shadow||b.name==="EXPIRY_BASE_OIVOL"||b.book==="EXPIRY_BASE_OIVOL");
   const bt=b.backtest||(isSh?{label:jn.label||"backtest, not booked",text:jn.text,missed_counted_net:jn.missed_counted_net}:null);
-  h+=`<div class="varBox on${isSh?" expOiVolCard":""}" style="margin-top:8px"><h4 style="${isSh?"white-space:normal;overflow:visible;text-overflow:unset":""}">${esc(b.label||b.name)}</h4><div class="kv"><span>TODAY net <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)}</b></span><span>gross <b class="${cl(d.pnl_gross)}">₹${sg(d.pnl_gross,0)}</b></span><span>${d.charges!=null?`charges ₹${f(d.charges||0,0)} · slippage ₹${f(d.slippage||0,0)}`:`costs ₹${f(d.costs||0,0)}`}</span><span>R <b>${sg(d.r)}R</b></span><span>TRADES <b>${d.trades||0}</b></span><span>WIN <b>${d.winRate!=null?f(d.winRate,0)+"%":"—"}</b></span><span>ALL net ₹${sg(t.pnl,0)}</span></div>${bt&&(bt.text||bt.label)?`<div class="btxt"><b>${esc(bt.label||"backtest, not booked")}</b> — ${esc(bt.text||"")}${bt.missed_counted_net!=null?" · counted net ₹"+sg(bt.missed_counted_net,0):""} · paper, not in booked P&amp;L</div>`:""}</div>`;
+  h+=`<div class="varBox on${isSh?" expOiVolCard":""}" style="margin-top:8px"><h4 style="${isSh?"white-space:normal;overflow:visible;text-overflow:unset":""}">${esc(dailyIndexBookLabel(b))}</h4><div class="kv"><span>TODAY net <b class="${cl(d.pnl)}">₹${sg(d.pnl,0)}</b></span><span>gross <b class="${cl(d.pnl_gross)}">₹${sg(d.pnl_gross,0)}</b></span><span>${d.charges!=null?`charges ₹${f(d.charges||0,0)} · slippage ₹${f(d.slippage||0,0)}`:`costs ₹${f(d.costs||0,0)}`}</span><span>R <b>${sg(d.r)}R</b></span><span>TRADES <b>${d.trades||0}</b></span><span>WIN <b>${d.winRate!=null?f(d.winRate,0)+"%":"—"}</b></span><span>ALL net ₹${sg(t.pnl,0)}</span></div>${bt&&(bt.text||bt.label)?`<div class="btxt"><b>${esc(bt.label||"backtest, not booked")}</b> — ${esc(bt.text||"")}${bt.missed_counted_net!=null?" · counted net ₹"+sg(bt.missed_counted_net,0):""} · paper, not in booked P&amp;L</div>`:""}</div>`;
   const op=b.open||[];
   h+=`<table><tr><th>OPEN</th><th>QTY</th><th>FILL</th><th>LTP</th>${LIVEPNL?"<th>LIVE P&amp;L</th>":""}<th>SL</th><th>TP</th><th>TRAIL</th><th>PEAK</th><th>GREEKS</th><th>OI/VOL</th><th>TIME</th></tr>`+(op.map(o=>{const g=o.greeks||{},c=o.confirm||{};const lp=(o.ltp!=null)?((o.ltp-o.fill)*(o.qty_open||0)+(o.realized||0)):null;const tr=o.lot1_done?'<span class="g">lot1 booked · lot2 trailing</span>':(o.c2c?'<span class="a">C2C</span>':'—');return `<tr><td><b>${esc(nm(o.contract))}</b><div class="dm">${esc(o.level||"")} ${esc(o.pattern||"")} ${esc(o.tf||"")} trig ${esc(o.trigger_time||"")}</div></td><td>${o.qty_open}/${o.qty}</td><td>${f(o.fill)}</td><td><b>${o.ltp!=null?f(o.ltp):"—"}</b> <span class="dm">${esc(o.ltp_t||"")}</span></td>${LIVEPNL?`<td class="${cl(lp)}">${lp!=null?"₹"+sg(lp,0):"—"}</td>`:""}<td class="p">${f(o.prem_sl)} <span class="dm">idx ${f(o.spot_sl)}</span></td><td class="g">${o.prem_tp!=null?f(o.prem_tp):f(o.spot_t1)}</td><td>${tr}</td><td>${o.peak!=null?f(o.peak):"—"}</td><td class="dm">Δ ${g.delta??"—"} Γ ${g.gamma??"—"} θ/hr ${g.theta_per_hr??g.theta??"—"} IV ${g.iv??"—"}</td><td class="dm">${esc(c.tag||"—")} vol ${c.vol_ratio??"—"}x PCR ${c.pcr_then??"—"}→${c.pcr_now??"—"}</td><td>${esc(String(o.time||"").slice(0,8))}</td></tr>`}).join("")||`<tr><td colspan="12" class="m">no open position</td></tr>`)+`</table>`;
   const rc=(b.recent||[]).slice().reverse();
