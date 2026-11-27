@@ -12,11 +12,66 @@ let SYM=String(q.get("symbol")||"NIFTY").toUpperCase();
 let TF=TFS.includes(q.get("tf"))?q.get("tf"):"5m";
 let chartObj=null;
 
+const LIVE_ST=/^(OPEN|LIVE|ENTERED|T1_DONE|PARTIAL)$/i;
 function linesFromQuery(){
   const out=[];
   const add=(k,kind,label)=>{const v=q.get(k); if(v==null||v==="")return; const n=Number(v); if(!isNaN(n)) out.push({kind,price:n,label});};
   add("level","level","LVL"); add("entry","entry","E"); add("sl","sl","SL"); add("t1","t1","T1"); add("t2","t2","T2");
   return out;
+}
+function collectLiveRows(sym){
+  const want=String(sym||"").toUpperCase();
+  const out=[];
+  const seen=new Set();
+  const add=r=>{
+    if(!r||String(r.symbol||"").toUpperCase()!==want) return;
+    if(!LIVE_ST.test(String(r.status||"OPEN"))) return;
+    const id=String(r.id||"")+"|"+r.entry+"|"+r.sl+"|"+r.contract;
+    if(seen.has(id)) return;
+    seen.add(id);
+    out.push(r);
+  };
+  const dash=(window.NL&&NL.bundle&&NL.bundle.dash)||{};
+  const vp=((dash.variant_pages||{}).variants)||{};
+  Object.keys(vp).forEach(k=>(vp[k]&&vp[k].live||[]).forEach(add));
+  const iceRoot=((dash.iceberg||{}).variants)||{};
+  const ice=iceRoot.variants||iceRoot;
+  if(ice&&typeof ice==="object"){
+    Object.keys(ice).forEach(k=>{const v=ice[k]; if(v&&Array.isArray(v.live)) v.live.forEach(add);});
+  }
+  const paper=dash.paper||((dash.state||{}).paper)||{};
+  (paper.open||[]).forEach(add);
+  ((((dash.state||{}).variants||{}).books)||[]).forEach(b=>(b.open||b.live||[]).forEach(add));
+  return out;
+}
+function marksFromLive(rows){
+  const out=[], seen={};
+  (rows||[]).forEach(r=>{
+    const entry=r.spot_entry!=null?r.spot_entry:(r.entry!=null?r.entry:r.fill);
+    const sl=r.spot_sl!=null?r.spot_sl:(r.orig_sl!=null?r.orig_sl:r.sl);
+    const t1=r.spot_t1!=null?r.spot_t1:r.t1;
+    const t2=r.spot_t2!=null?r.spot_t2:r.t2;
+    const level=r.level!=null?r.level:r.iceberg_level;
+    const add=(kind,price,label)=>{
+      if(price==null||isNaN(Number(price))) return;
+      const k=kind+"|"+Number(price);
+      if(seen[k]) return; seen[k]=1;
+      out.push({kind,price:Number(price),label});
+    };
+    add("level",level,"LVL");
+    add("entry",entry,"E");
+    add("sl",sl,"SL");
+    add("t1",t1,"T1");
+    add("t2",t2,"T2");
+  });
+  return out;
+}
+function chartMarks(){
+  // E / SL / T1 / T2 only while this symbol has a running LIVE/OPEN trade.
+  const live=collectLiveRows(SYM);
+  if(!live.length) return [];
+  const fromLive=marksFromLive(live);
+  return fromLive.length?fromLive:linesFromQuery();
 }
 
 function expand(c){return (c&&c.b||[]).map(a=>({time:a[0],open:a[1],high:a[2],low:a[3],close:a[4],volume:a[5]||0}))}
@@ -95,7 +150,7 @@ function renderHead(){
 function renderChart(){
   const el=$("cvChart"); if(!el) return;
   const bars=barsOf(SYM, TF);
-  const marks=linesFromQuery();
+  const marks=chartMarks();
   if(!bars.length){
     el.innerHTML=`<div class="m" style="padding:24px">Is symbol ka public chart data abhi nahi mila (${esc(SYM)}).</div>`;
     return;

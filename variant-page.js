@@ -96,11 +96,56 @@ function allR(st){
   return all.total_r!=null?all.total_r:all.r;
 }
 
+
+const LIVE_ST=/^(OPEN|LIVE|ENTERED|T1_DONE|PARTIAL)$/i;
+function isLiveRow(r){
+  return !!r && LIVE_ST.test(String(r.status||"OPEN"));
+}
+function liveRowsFor(v, sym){
+  const want=String(sym||"").toUpperCase();
+  return (v&&v.live||[]).filter(r=>String(r.symbol||"").toUpperCase()===want && isLiveRow(r));
+}
+function livePriceSet(rows){
+  const prices=new Set();
+  (rows||[]).forEach(r=>{
+    [r.spot_entry,r.entry,r.fill,r.spot_sl,r.sl,r.orig_sl,r.spot_t1,r.t1,r.spot_t2,r.t2,r.level,r.iceberg_level].forEach(p=>{
+      if(p!=null&&!isNaN(Number(p))) prices.add(Number(p));
+    });
+  });
+  return prices;
+}
+function liveMarks(v, sym){
+  const rows=liveRowsFor(v, sym);
+  if(!rows.length) return [];
+  const prices=livePriceSet(rows);
+  const want=String(sym||"").toUpperCase();
+  return (v.marks||[]).filter(m=>{
+    if(!m||m.price==null) return false;
+    if(String(m.symbol||"").toUpperCase()!==want) return false;
+    if(m.status&&!LIVE_ST.test(m.status)) return false;
+    return !prices.size||prices.has(Number(m.price));
+  });
+}
+function liveLineParams(v, sym){
+  const r=liveRowsFor(v, sym)[0];
+  if(!r) return {};
+  const extra={};
+  const entry=r.spot_entry!=null?r.spot_entry:(r.entry!=null?r.entry:r.fill);
+  const sl=r.spot_sl!=null?r.spot_sl:(r.orig_sl!=null?r.orig_sl:r.sl);
+  const t1=r.spot_t1!=null?r.spot_t1:r.t1;
+  const t2=r.spot_t2!=null?r.spot_t2:r.t2;
+  if(entry!=null) extra.entry=entry;
+  if(sl!=null) extra.sl=sl;
+  if(t1!=null) extra.t1=t1;
+  if(t2!=null) extra.t2=t2;
+  return extra;
+}
+
 function cardHtml(v, href){
   const st=v.stats||{};
   const nw=(v.watch||[]).length, nl=(v.live||[]).length, nc=(v.closed_today||[]).length;
   const sym=v.chart_symbol||"NIFTY";
-  const marks=(v.marks||[]).filter(m=>m.symbol===sym);
+  const marks=liveMarks(v, sym);
   const svg=sparkSvg(barsOf(sym), marks);
   const sh=!!v.shadow;
   const badge=sh?`<span class="iceVarShadow">shadow, not in booked P&amp;L</span>`:`<span class="iceVarOfficial">${esc(dailyIndexDisplayText(v.info||v.family||"official"))}</span>`;
@@ -170,7 +215,7 @@ let chartObj=null;
 function renderChartBox(v, sym){
   const title=$("chartTitle");
   if(title) title.textContent=dailyIndexDisplayName(v.name||v.book||"VAR")+" · "+sym+" · 5m";
-  const marks=(v.marks||[]).filter(m=>m.symbol===sym);
+  const marks=liveMarks(v, sym);
   const bars=barsOf(sym);
   const el=$("iceChart");
   if(!el) return;
@@ -198,7 +243,7 @@ function renderChartBox(v, sym){
   }else{
     el.innerHTML=sparkSvg(bars, marks, Math.max(320,el.clientWidth||320), el.clientHeight||240);
   }
-  bindOpenChart(sym);
+  bindOpenChart(v, sym);
 }
 
 function fillSymSel(v, current){
@@ -255,10 +300,10 @@ function fullChartHref(sym, extra){
   p.set("k",k);
   return "chart.html?"+p.toString();
 }
-function bindOpenChart(sym){
+function bindOpenChart(v, sym){
   const a=$("openChart");
   if(!a||!sym) return;
-  a.href=fullChartHref(sym);
+  a.href=fullChartHref(sym, liveLineParams(v||{}, sym));
   a.style.display="";
 }
 
