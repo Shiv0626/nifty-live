@@ -6,6 +6,24 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 const f=(n,d=2)=>n==null||isNaN(n)?"—":Number(n).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sg=(n,d=2)=>n==null?"—":(n>0?"+":"")+f(n,d);
 const cl=v=>v>0?"g":v<0?"p":"dm";
+const DAILY_INDEX_BOOK_LABELS={
+  EXPIRY_BASE:"INDEX_BASE",
+  EXPIRY_IMP:"INDEX_IMP",
+  EXPIRY_SCALP1M:"INDEX_SCALP1M",
+  EXPIRY_BASE_OIVOL:"INDEX_BASE_OIVOL"
+};
+function dailyIndexDisplayName(key){
+  const k=String(key||"");
+  return DAILY_INDEX_BOOK_LABELS[k]||k;
+}
+function dailyIndexDisplayText(s){
+  return String(s||"")
+    .replace(/\bEXPIRY_BASE_OIVOL\b/g,"INDEX_BASE_OIVOL")
+    .replace(/\bEXPIRY_SCALP1M\b/g,"INDEX_SCALP1M")
+    .replace(/\bEXPIRY_BASE\b/g,"INDEX_BASE")
+    .replace(/\bEXPIRY_IMP\b/g,"INDEX_IMP")
+    .replace(/\bexpiry paper book\b/gi,"daily index paper book");
+}
 
 function pagesRoot(){
   const D=(window.NL&&NL.bundle&&NL.bundle.dash)||{};
@@ -85,10 +103,10 @@ function cardHtml(v, href){
   const marks=(v.marks||[]).filter(m=>m.symbol===sym);
   const svg=sparkSvg(barsOf(sym), marks);
   const sh=!!v.shadow;
-  const badge=sh?`<span class="iceVarShadow">shadow, not in booked P&amp;L</span>`:`<span class="iceVarOfficial">${esc(v.info||v.family||"official")}</span>`;
+  const badge=sh?`<span class="iceVarShadow">shadow, not in booked P&amp;L</span>`:`<span class="iceVarOfficial">${esc(dailyIndexDisplayText(v.info||v.family||"official"))}</span>`;
   return `<a class="iceVarCard${sh?" shadow":""}" href="${esc(href)}">
-    <div class="iceVarH"><b>${esc(v.name||v.book||"")}</b><span class="iceVarOpen">Open page →</span></div>
-    <div class="iceVarDesc">${esc(v.label||v.book||"")} · PAPER ONLY</div>
+    <div class="iceVarH"><b>${esc(dailyIndexDisplayName(v.name||v.book||""))}</b><span class="iceVarOpen">Open page →</span></div>
+    <div class="iceVarDesc">${esc(dailyIndexDisplayText(v.label||v.book||""))} · PAPER ONLY</div>
     ${badge}
     ${svg}
     <div class="iceVarMeta">${esc(sym)} · 5m · WATCH ${nw} · LIVE ${nl} · CLOSED today ${nc}</div>
@@ -118,7 +136,7 @@ function rowCard(r, kind){
   // never show open/unrealised P&L
   return `<div class="card iceberg${kind==="watch"?" watch":""}${kind==="closed"?" closed":""}">
     <div class="h">${dirMark(r)} <b>${esc(r.symbol||"")}</b>
-      <span class="tagIce">${esc(r.book||"VAR")} · paper</span>
+      <span class="tagIce">${esc(dailyIndexDisplayName(r.book||"VAR"))} · paper</span>
       <span class="badge">${esc(st)}</span>
       <span class="m">${esc(r.time_ist||r.time||"")}</span>
     </div>
@@ -144,14 +162,14 @@ function renderStats(v){
   const desc=$("varDesc");
   if(desc){
     const sh=v.shadow? " · shadow, not in booked P&L":"";
-    desc.textContent=(v.label||v.book||"")+" — "+(v.desc||"")+sh+" · PAPER ONLY";
+    desc.textContent=dailyIndexDisplayText((v.label||v.book||"")+" — "+(v.desc||"")+sh+" · PAPER ONLY");
   }
 }
 
 let chartObj=null;
 function renderChartBox(v, sym){
   const title=$("chartTitle");
-  if(title) title.textContent=(v.name||v.book||"VAR")+" · "+sym+" · 5m";
+  if(title) title.textContent=dailyIndexDisplayName(v.name||v.book||"VAR")+" · "+sym+" · 5m";
   const marks=(v.marks||[]).filter(m=>m.symbol===sym);
   const bars=barsOf(sym);
   const el=$("iceChart");
@@ -193,8 +211,8 @@ function fillSymSel(v, current){
 function paint(){
   const name=paramV();
   const v=variant(name);
-  const ttl=$("varName"); if(ttl) ttl.textContent=name;
-  document.title="Variant · "+name+" · paper";
+  const ttl=$("varName"); if(ttl) ttl.textContent=dailyIndexDisplayName(name);
+  document.title="Variant · "+dailyIndexDisplayName(name)+" · paper";
   const badge=$("srcBadge");
   if(badge&&window.NL){try{const b=NL.badgeHTML();badge.className="srcb "+b.cls;badge.innerHTML=b.html}catch(e){}}
   if(!v){
